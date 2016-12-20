@@ -9,10 +9,10 @@
   },
   "main": "./index.js",
   "peerDependencies": {
-    "crizmas-mvc": "1.x",
-    "crizmas-async-utils": "1.x",
-    "crizmas-utils": "1.x",
-    "crizmas-promise-queue": "1.x"
+    "crizmas-mvc": "0.x",
+    "crizmas-async-utils": "0.x",
+    "crizmas-utils": "0.x",
+    "crizmas-promise-queue": "0.x"
   },
   "homepage": "https://raulsebastianmihaila.github.io/crizmas-mvc-docs",
   "repository": {
