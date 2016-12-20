@@ -1,0 +1,34 @@
+{
+  "name": "crizmas-form",
+  "version": "0.9.0",
+  "description": "Form tools used in conjunction with the crizmas-mvc framework.",
+  "private": true,
+  "author": {
+    "name": "Raul-Sebastian Mihăilă",
+    "email": "raul.mihaila@gmail.com"
+  },
+  "main": "./index.js",
+  "peerDependencies": {
+    "crizmas-mvc": "1.x",
+    "crizmas-async-utils": "1.x",
+    "crizmas-utils": "1.x",
+    "crizmas-promise-queue": "1.x"
+  },
+  "homepage": "https://raulsebastianmihaila.github.io/crizmas-mvc-docs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/raulsebastianmihaila/crizmas-form"
+  },
+  "bugs": "https://github.com/raulsebastianmihaila/crizmas-form/issues",
+  "keywords": [
+    "mvc",
+    "form",
+    "react",
+    "crizmas",
+    "reactjs",
+    "christmas",
+    "javascript",
+    "framework",
+    "front-end"
+  ]
+}
