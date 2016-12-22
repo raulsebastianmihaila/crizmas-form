@@ -269,10 +269,13 @@
       });
     };
 
-    Reflect.defineProperty(this, 'isBlocked', {
-      get: () => this.hasErrors
-        || (!preventPendingBlocking && this.isPending)
+    Reflect.defineProperty(this, 'isPendingBlocked', {
+      get: () => (!preventPendingBlocking && this.isPending)
         || (!preventInputPendingBlocking && this.isInputPending)
+    });
+
+    Reflect.defineProperty(this, 'isBlocked', {
+      get: () => this.hasErrors || this.isPendingBlocked
     });
 
     this.submit = (...args) => {
@@ -298,7 +301,7 @@
     };
 
     this.reset = ({target = this} = {}) => {
-      if (target === this && this.isBlocked) {
+      if (target === this && this.isPendingBlocked) {
         return;
       }
 
@@ -313,14 +316,14 @@
         this.root.validate({event: 'reset', target: this});
 
         // after validation must recheck if is blocked
-        if (this.actions && this.actions.reset && !this.isBlocked) {
+        if (this.actions && this.actions.reset && !this.isPendingBlocked) {
           this.actions.reset.call(this);
         }
       }
     };
 
     this.clear = ({target = this} = {}) => {
-      if (target === this && this.isBlocked) {
+      if (target === this && this.isPendingBlocked) {
         return;
       }
 
@@ -341,7 +344,7 @@
         this.root.validate({event: 'clear', target: this});
 
         // after validation must recheck if is blocked
-        if (this.actions && this.actions.clear && !this.isBlocked) {
+        if (this.actions && this.actions.clear && !this.isPendingBlocked) {
           this.actions.clear.call(this);
         }
       }
