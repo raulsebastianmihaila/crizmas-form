@@ -26,7 +26,7 @@
   const Input = Mvc.controller(function (config = {}) {
     const {name, validate, init, actions, parent, onFormChange,
       preventInputPendingBlocking, preventPendingBlocking} = config;
-    let {getValue, setValue, children, initialValue, root = this} = config;
+    let {getValue, setValue, children, initialValue, clearValue, root = this} = config;
     let childrenMap = new Map();
     let isSelfInputPending = false;
 
@@ -331,13 +331,13 @@
         children.forEach(child => child.clear({target}));
       }
 
-      if (!this.initialValue) {
-        resetInternal();
-      } else {
-        this.initialValue = initialValue = null;
-
-        resetInternal();
+      if (config.hasOwnProperty('clearValue')) {
+        this.initialValue = clearValue;
+      } else if (this.initialValue) {
+        this.initialValue = null;
       }
+
+      resetInternal();
 
       if (target === this) {
         this.root.markAsDirty();
