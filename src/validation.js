@@ -10,8 +10,7 @@
     PromiseQueue = require('crizmas-promise-queue');
     utils = require('crizmas-utils');
   } else {
-    PromiseQueue = window.CrizmasPromiseQueue;
-    utils = window.crizmasUtils;
+    ({PromiseQueue, utils} = window.crizmas);
   }
 
   const {isPromise} = utils;
@@ -160,6 +159,6 @@
   if (isModule) {
     module.exports = moduleExports;
   } else {
-    window.crizmasValidation = moduleExports;
+    window.crizmas.validation = moduleExports;
   }
 })();

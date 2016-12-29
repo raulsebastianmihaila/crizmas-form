@@ -17,8 +17,7 @@
     Mvc = require('crizmas-mvc');
     asyncUtils = require('crizmas-async-utils');
   } else {
-    Mvc = window.CrizmasMvc;
-    asyncUtils = window.crizmasAsyncUtils;
+    ({Mvc, asyncUtils} = window.crizmas);
   }
 
   const {awaitFor, awaitAll} = asyncUtils;
@@ -391,6 +390,6 @@
   if (isModule) {
     module.exports = moduleExports;
   } else {
-    window.CrizmasForm = moduleExports;
+    window.crizmas.Form = moduleExports;
   }
 })();
