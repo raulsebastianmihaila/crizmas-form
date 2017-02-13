@@ -370,8 +370,6 @@
     if (init) {
       init.call(this, {input: this});
     }
-
-    return this;
   });
 
   const Form = Mvc.controller(function (config) {
