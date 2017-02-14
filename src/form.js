@@ -25,47 +25,50 @@
   const Input = Mvc.controller(function (config = {}) {
     const {name, validate, init, actions, parent, onFormChange,
       preventInputPendingBlocking, preventPendingBlocking} = config;
-    let {getValue, setValue, children, initialValue, clearValue, root = this} = config;
+    let {getValue, setValue, children, initialValue, clearValue, root} = config;
     let childrenMap = new Map();
     let isSelfInputPending = false;
 
-    this.name = name;
-    this.getValue = Mvc.ignore(getValue);
-    this.actions = actions;
-    this.isDirty = false;
-    this.isTouched = false;
-    this.isInputPending = false;
-    this.isSubmitted = false;
-    this.hasErrors = false;
-    this.errors = null;
-    this.root = root;
-    this.parent = parent;
-    this.initialValue = initialValue;
-    this.onFormChange = onFormChange;
+    const input = {
+      name,
+      getValue: Mvc.ignore(getValue),
+      actions,
+      isDirty: false,
+      isTouched: false,
+      isInputPending: false,
+      isSubmitted: false,
+      hasErrors: false,
+      errors: null,
+      parent,
+      initialValue,
+      onFormChange
+    };
+
+    input.root = root || input;
 
     Mvc.observe(actions);
 
-    if (!this.getValue !== !setValue) {
+    if (!input.getValue !== !setValue) {
       throw new Error('getValue and setValue must be either both provided or both absent.');
     }
 
-    if (this.getValue) {
+    if (input.getValue) {
       if (config.hasOwnProperty('initialValue')) {
         throw new Error('Cannot provide an initial value if getValue was provided.');
       }
 
-      this.initialValue = this.getValue();
+      input.initialValue = input.getValue();
     } else {
       // input.value must not be created if a getValue is passed
-      this.value = this.initialValue;
+      input.value = input.initialValue;
 
-      this.getValue = Mvc.ignore(() => this.value);
+      input.getValue = Mvc.ignore(() => input.value);
       // if getValue is absent then setValue is absent
-      setValue = val => this.value = val;
+      setValue = val => input.value = val;
     }
 
-    this.children = children = children && children.map(child =>
-      new Input(Object.assign({}, child, {root: this.root, parent: this})));
+    input.children = children = children && children.map(child =>
+      new Input(Object.assign({}, child, {root: input.root, parent: input})));
 
     if (children) {
       children.forEach(child => {
@@ -79,22 +82,22 @@
       });
     }
 
-    this.get = Mvc.ignore(name => childrenMap.get(name));
+    input.get = Mvc.ignore(name => childrenMap.get(name));
 
-    this.add = (childConfig) => {
-      this.addChild(new Input(childConfig));
+    input.add = (childConfig) => {
+      input.addChild(new Input(childConfig));
     };
 
-    this.addChild = (childInput) => {
+    input.addChild = (childInput) => {
       if (childInput.parent) {
         throw new Error('The child input already has a parent.');
       }
 
-      childInput.parent = this;
-      childInput.setRoot(this.root);
+      childInput.parent = input;
+      childInput.setRoot(input.root);
 
       if (!children) {
-        this.children = children = [];
+        input.children = children = [];
       }
 
       children.push(childInput);
@@ -107,30 +110,30 @@
         childrenMap.set(childInput.name, childInput);
       }
 
-      Mvc.addObservedChild(this, childInput);
+      Mvc.addObservedChild(input, childInput);
 
-      this.markAsInputPending();
-      this.root.markAsDirty();
-      this.root.validate({event: 'add', target: this});
+      input.markAsInputPending();
+      input.root.markAsDirty();
+      input.root.validate({event: 'add', target: input});
     };
 
-    this.setRoot = (root_) => {
-      this.root = root_;
+    input.setRoot = (root) => {
+      input.root = root;
 
       if (children) {
-        children.forEach(child => child.setRoot(this.root));
+        children.forEach(child => child.setRoot(root));
       }
     };
 
-    this.remove = () => {
-      if (!this.parent) {
+    input.remove = () => {
+      if (!input.parent) {
         throw new Error('The input doesn\'t have a parent.');
       }
 
-      this.parent.removeChild(this);
+      input.parent.removeChild(input);
     };
 
-    this.removeChild = (child) => {
+    input.removeChild = (child) => {
       const childIndex = children.indexOf(child);
 
       if (childIndex === -1) {
@@ -143,58 +146,58 @@
         childrenMap.delete(child.name);
       }
 
-      Mvc.removeObservedChild(this, child);
+      Mvc.removeObservedChild(input, child);
 
       child.parent = null;
 
       child.setRoot(child);
-      this.markAsInputPending();
-      this.root.markAsDirty();
-      this.root.validate({event: 'remove', target: this});
+      input.markAsInputPending();
+      input.root.markAsDirty();
+      input.root.validate({event: 'remove', target: input});
     };
 
     const markAsTouched = () => {
-      let input = this;
+      let touchedInput = input;
 
       do {
-        input.isTouched = true;
-        input = input.parent;
-      } while (input);
+        touchedInput.isTouched = true;
+        touchedInput = touchedInput.parent;
+      } while (touchedInput);
     };
 
     const callOnFormChange = () => {
-      let input = this;
+      let changedInput = input;
 
       do {
-        if (typeof input.onFormChange === 'function') {
-          input.onFormChange({target: this, input});
+        if (typeof changedInput.onFormChange === 'function') {
+          changedInput.onFormChange({target: input, input: changedInput});
         }
 
-        input = input.parent;
-      } while (input);
+        changedInput = changedInput.parent;
+      } while (changedInput);
     };
 
-    this.markAsInputPending = () => {
-      this.isInputPending = isSelfInputPending
+    input.markAsInputPending = () => {
+      input.isInputPending = isSelfInputPending
         || (!!children && children.some(child => child.isInputPending));
 
-      if (this.parent) {
-        this.parent.markAsInputPending();
+      if (input.parent) {
+        input.parent.markAsInputPending();
       }
     };
 
-    this.onChange = val => {
+    input.onChange = val => {
       isSelfInputPending = false;
 
-      setValue.call(this, val);
-      this.markAsInputPending();
-      this.root.markAsDirty();
+      setValue.call(input, val);
+      input.markAsInputPending();
+      input.root.markAsDirty();
       markAsTouched();
-      this.root.validate({event: 'change', target: this});
+      input.root.validate({event: 'change', target: input});
       callOnFormChange();
     };
 
-    this.markAsDirty = () => {
+    input.markAsDirty = () => {
       let hasDirtyChildren = false;
 
       if (children) {
@@ -207,30 +210,30 @@
         });
       }
 
-      this.isDirty = hasDirtyChildren || this.getValue() !== this.initialValue;
+      input.isDirty = hasDirtyChildren || input.getValue() !== input.initialValue;
     };
 
-    this.onBlur = () => {
+    input.onBlur = () => {
       markAsTouched();
-      this.root.validate({event: 'blur', target: this});
+      input.root.validate({event: 'blur', target: input});
     };
 
-    this.onStartPending = () => {
-      let input = this;
+    input.onStartPending = () => {
+      let pendingInput = input;
 
       isSelfInputPending = true;
 
       do {
-        input.isInputPending = true;
-        input = input.parent;
-      } while (input);
+        pendingInput.isInputPending = true;
+        pendingInput = pendingInput.parent;
+      } while (pendingInput);
     };
 
-    this.validate = ({event, target = this} = {}) => {
+    input.validate = ({event, target = input} = {}) => {
       const errors = [];
 
-      this.errors = null;
-      this.hasErrors = false;
+      input.errors = null;
+      input.hasErrors = false;
 
       // no child should reject as, below, the validate on the current item
       // is caught and the error is set to the generic error
@@ -243,7 +246,7 @@
           });
         }
 
-        return awaitFor(validate && awaitFor(validate.call(this, {input: this, event, target}),
+        return awaitFor(validate && awaitFor(validate.call(input, {input, event, target}),
           (error) => {
             if (error) {
               if (Array.isArray(error)) {
@@ -258,49 +261,49 @@
               : Form.asyncValidationError);
           }), () => {
             if (errors.length) {
-              this.errors = errors;
-              this.hasErrors = true;
+              input.errors = errors;
+              input.hasErrors = true;
             } else {
-              this.errors = null;
-              this.hasErrors = false;
+              input.errors = null;
+              input.hasErrors = false;
             }
           });
       });
     };
 
-    Reflect.defineProperty(this, 'isPendingBlocked', {
-      get: () => (!preventPendingBlocking && this.isPending)
-        || (!preventInputPendingBlocking && this.isInputPending)
+    Reflect.defineProperty(input, 'isPendingBlocked', {
+      get: () => (!preventPendingBlocking && input.isPending)
+        || (!preventInputPendingBlocking && input.isInputPending)
     });
 
-    Reflect.defineProperty(this, 'isBlocked', {
-      get: () => this.hasErrors || this.isPendingBlocked
+    Reflect.defineProperty(input, 'isBlocked', {
+      get: () => input.hasErrors || input.isPendingBlocked
     });
 
-    this.submit = (...args) => {
-      if (this.isBlocked) {
+    input.submit = (...args) => {
+      if (input.isBlocked) {
         return;
       }
 
-      this.isSubmitted = true;
+      input.isSubmitted = true;
 
-      this.validate({event: 'submit', target: this});
+      input.validate({event: 'submit', target: input});
 
       // after validation must recheck if is blocked
-      if (this.actions && this.actions.submit && !this.isBlocked) {
-        this.actions.submit.apply(this, args);
+      if (input.actions && input.actions.submit && !input.isBlocked) {
+        input.actions.submit.apply(input, args);
       }
     };
 
     const resetInternal = () => {
-      setValue.call(this, this.initialValue);
+      setValue.call(input, input.initialValue);
 
-      this.isSubmitted = false;
-      this.isTouched = false;
+      input.isSubmitted = false;
+      input.isTouched = false;
     };
 
-    this.reset = ({target = this} = {}) => {
-      if (target === this && this.isPendingBlocked) {
+    input.reset = ({target = input} = {}) => {
+      if (target === input && input.isPendingBlocked) {
         return;
       }
 
@@ -310,19 +313,19 @@
 
       resetInternal();
 
-      if (target === this) {
-        this.root.markAsDirty();
-        this.root.validate({event: 'reset', target: this});
+      if (target === input) {
+        input.root.markAsDirty();
+        input.root.validate({event: 'reset', target: input});
 
         // after validation must recheck if is blocked
-        if (this.actions && this.actions.reset && !this.isPendingBlocked) {
-          this.actions.reset.call(this);
+        if (input.actions && input.actions.reset && !input.isPendingBlocked) {
+          input.actions.reset.call(input);
         }
       }
     };
 
-    this.clear = ({target = this} = {}) => {
-      if (target === this && this.isPendingBlocked) {
+    input.clear = ({target = input} = {}) => {
+      if (target === input && input.isPendingBlocked) {
         return;
       }
 
@@ -331,25 +334,25 @@
       }
 
       if (config.hasOwnProperty('clearValue')) {
-        this.initialValue = clearValue;
-      } else if (this.initialValue) {
-        this.initialValue = null;
+        input.initialValue = clearValue;
+      } else if (input.initialValue) {
+        input.initialValue = null;
       }
 
       resetInternal();
 
-      if (target === this) {
-        this.root.markAsDirty();
-        this.root.validate({event: 'clear', target: this});
+      if (target === input) {
+        input.root.markAsDirty();
+        input.root.validate({event: 'clear', target: input});
 
         // after validation must recheck if is blocked
-        if (this.actions && this.actions.clear && !this.isPendingBlocked) {
-          this.actions.clear.call(this);
+        if (input.actions && input.actions.clear && !input.isPendingBlocked) {
+          input.actions.clear.call(input);
         }
       }
     };
 
-    this.getResult = Mvc.ignore(() => {
+    input.getResult = Mvc.ignore(() => {
       if (children) {
         if (!childrenMap.size || childrenMap.size !== children.length) {
           return children.map(child => child.getResult());
@@ -364,12 +367,14 @@
         return result;
       }
 
-      return this.getValue();
+      return input.getValue();
     });
 
     if (init) {
-      init.call(this, {input: this});
+      init.call(input, {input});
     }
+
+    return input;
   });
 
   const Form = Mvc.controller(function (config) {
