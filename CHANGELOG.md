@@ -1,3 +1,10 @@
+<a name="0.2.3"></a>
+# [0.2.3](https://github.com/raulsebastianmihaila/crizmas-form/compare/v0.2.2...v0.2.3) (2017-02-14)
+
+### Updates
+- Refactoring for consistent style.
+- Updated peer dependencies versions.
+
 <a name="0.2.2"></a>
 # [0.2.2](https://github.com/raulsebastianmihaila/crizmas-form/compare/v0.2.1...v0.2.2) (2017-02-13)
 
