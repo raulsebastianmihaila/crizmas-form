@@ -1,13 +1,6 @@
 (() => {
   'use strict';
 
-  // a form controller is a tree of inputs. the form itself is actually a top level input.
-  // the isDirty prop means that the input was changed.
-  // the isTouched prop means that the input was interacted with (like being changed on focused).
-  // the entire form is validated when a value changes and on init, on blur and on submit.
-  // init can be used to set non-model state on the input.
-  // in case setValue is not provided, on change the value is set on the input
-
   const isModule = typeof module === 'object' && typeof module.exports === 'object';
 
   let Mvc;
