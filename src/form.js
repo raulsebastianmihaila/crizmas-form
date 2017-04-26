@@ -5,15 +5,19 @@
 
   let Mvc;
   let asyncUtils;
+  let utils;
 
   if (isModule) {
     Mvc = require('crizmas-mvc');
     asyncUtils = require('crizmas-async-utils');
+    utils = require('crizmas-utils');
+
   } else {
-    ({Mvc, asyncUtils} = window.crizmas);
+    ({Mvc, asyncUtils, utils} = window.crizmas);
   }
 
   const {awaitFor, awaitAll} = asyncUtils;
+  const {isFunc} = utils;
 
   const Input = Mvc.controller(function (config = {}) {
     const {name, validate, init, actions, parent, onFormChange,
@@ -57,14 +61,14 @@
 
       input.getValue = Mvc.ignore(() => input.value);
       // if getValue is absent then setValue is absent
-      setValue = val => input.value = val;
+      setValue = (val) => input.value = val;
     }
 
-    input.children = children = children && children.map(child =>
+    input.children = children = children && children.map((child) =>
       new Input(Object.assign({}, child, {root: input.root, parent: input})));
 
     if (children) {
-      children.forEach(child => {
+      children.forEach((child) => {
         if (child.name !== undefined && child.name !== null) {
           if (childrenMap.has(child.name)) {
             throw new Error(`Duplicate child name: ${child.name}`);
@@ -75,7 +79,7 @@
       });
     }
 
-    input.get = Mvc.ignore(name => childrenMap.get(name));
+    input.get = Mvc.ignore((name) => childrenMap.get(name));
 
     input.add = (childConfig) => {
       input.addChild(new Input(childConfig));
@@ -114,7 +118,7 @@
       input.root = root;
 
       if (children) {
-        children.forEach(child => child.setRoot(root));
+        children.forEach((child) => child.setRoot(root));
       }
     };
 
@@ -162,7 +166,7 @@
       let changedInput = input;
 
       do {
-        if (typeof changedInput.onFormChange === 'function') {
+        if (isFunc(changedInput.onFormChange)) {
           changedInput.onFormChange({target: input, input: changedInput});
         }
 
@@ -172,14 +176,14 @@
 
     input.markAsInputPending = () => {
       input.isInputPending = isSelfInputPending
-        || (!!children && children.some(child => child.isInputPending));
+        || (!!children && children.some((child) => child.isInputPending));
 
       if (input.parent) {
         input.parent.markAsInputPending();
       }
     };
 
-    input.onChange = val => {
+    input.onChange = (val) => {
       isSelfInputPending = false;
 
       setValue.call(input, val);
@@ -194,7 +198,7 @@
       let hasDirtyChildren = false;
 
       if (children) {
-        children.forEach(child => {
+        children.forEach((child) => {
           child.markAsDirty();
 
           if (child.isDirty) {
@@ -230,9 +234,9 @@
 
       // no child should reject as, below, the validate on the current item
       // is caught and the error is set to the generic error
-      return awaitAll(children && children.map(child => child.validate({event, target})), () => {
+      return awaitAll(children && children.map((child) => child.validate({event, target})), () => {
         if (children) {
-          children.forEach(child => {
+          children.forEach((child) => {
             if (child.hasErrors) {
               errors.push(...child.errors);
             }
@@ -249,7 +253,7 @@
               }
             }
           }, (error) => {
-            errors.push(typeof Form.asyncValidationError === 'function'
+            errors.push(isFunc(Form.asyncValidationError)
               ? Form.asyncValidationError(error)
               : Form.asyncValidationError);
           }), () => {
@@ -301,7 +305,7 @@
       }
 
       if (children) {
-        children.forEach(child => child.reset({target}));
+        children.forEach((child) => child.reset({target}));
       }
 
       resetInternal();
@@ -323,7 +327,7 @@
       }
 
       if (children) {
-        children.forEach(child => child.clear({target}));
+        children.forEach((child) => child.clear({target}));
       }
 
       if (config.hasOwnProperty('clearValue')) {
@@ -348,12 +352,12 @@
     input.getResult = Mvc.ignore(() => {
       if (children) {
         if (!childrenMap.size || childrenMap.size !== children.length) {
-          return children.map(child => child.getResult());
+          return children.map((child) => child.getResult());
         }
 
         const result = {};
 
-        children.forEach(child => {
+        children.forEach((child) => {
           result[child.name] = child.getResult();
         });
 

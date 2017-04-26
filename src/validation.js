@@ -15,51 +15,54 @@
 
   const {isPromise} = utils;
 
-  function validation(...funcs) {
-    return function (...args) {
-      let error;
-      let promisedErrors = [];
+  const validation = (...funcs) => {
+    // make sure the function is not a constructor
+    return ({
+      function(...args) {
+        let error;
+        let promisedErrors = [];
 
-      funcs.some(func => {
-        const validationResult = func.apply(this, args);
+        funcs.some((func) => {
+          const validationResult = func.apply(this, args);
 
-        if (isPromise(validationResult)) {
-          promisedErrors.push(validationResult);
-        } else {
-          error = validationResult;
+          if (isPromise(validationResult)) {
+            promisedErrors.push(validationResult);
+          } else {
+            error = validationResult;
 
+            return error;
+          }
+        });
+
+        if (error) {
           return error;
         }
-      });
 
-      if (error) {
-        return error;
-      }
+        if (promisedErrors.length) {
+          return Promise.all(promisedErrors).then((results) => {
+            const errors = [];
 
-      if (promisedErrors.length) {
-        return Promise.all(promisedErrors).then(results => {
-          const errors = [];
-
-          results.forEach(result => {
-            if (result) {
-              if (Array.isArray(result)) {
-                errors.push(...result);
-              } else {
-                errors.push(result);
+            results.forEach((result) => {
+              if (result) {
+                if (Array.isArray(result)) {
+                  errors.push(...result);
+                } else {
+                  errors.push(result);
+                }
               }
-            }
+            });
+
+            return errors;
           });
-
-          return errors;
-        });
+        }
       }
-    };
-  }
+    }).function;
+  };
 
-  validation.required = function ({messageFunc} = {}) {
+  validation.required = ({messageFunc} = {}) => {
     let error;
 
-    return function ({input, event, target}) {
+    return ({input, event, target}) => {
       const value = input.getValue();
 
       if (value !== null && value !== undefined && value !== '') {
@@ -75,8 +78,8 @@
     };
   };
 
-  validation.min = function (minValue, {messageFunc} = {}) {
-    return function ({input}) {
+  validation.min = (minValue, {messageFunc} = {}) => {
+    return ({input}) => {
       const value =  input.getValue();
 
       if (value < minValue) {
@@ -87,8 +90,8 @@
     };
   };
 
-  validation.max = function (maxValue, {messageFunc} = {}) {
-    return function ({input}) {
+  validation.max = (maxValue, {messageFunc} = {}) => {
+    return ({input}) => {
       const value = input.getValue();
 
       if (value > maxValue) {
@@ -99,8 +102,8 @@
     };
   };
 
-  validation.minLength = function (minLength, {messageFunc} = {}) {
-    return function ({input}) {
+  validation.minLength = (minLength, {messageFunc} = {}) => {
+    return ({input}) => {
       const value = input.getValue();
 
       if (typeof value === 'string' && value.length < minLength) {
@@ -111,8 +114,8 @@
     };
   };
 
-  validation.maxLength = function (maxLength, {messageFunc} = {}) {
-    return function ({input}) {
+  validation.maxLength = (maxLength, {messageFunc} = {}) => {
+    return ({input}) => {
       const value = input.getValue();
 
       if (typeof value === 'string' && value.length > maxLength) {
@@ -123,13 +126,13 @@
     };
   };
 
-  validation.async = function (promiseFunc, {events = ['change']} = {}) {
+  validation.async = (promiseFunc, {events = ['change']} = {}) => {
     let error;
     let oldValue;
 
     const validationPromiseQueue = new PromiseQueue();
 
-    return function ({input, event, target}) {
+    return ({input, event, target}) => {
       const value = input.getValue();
 
       if (events.includes(event) && target === input) {
@@ -151,7 +154,7 @@
       oldValue = value;
 
       return error;
-    }
+    };
   };
 
   const moduleExports = validation;
