@@ -13,7 +13,7 @@
     ({PromiseQueue, utils} = window.crizmas);
   }
 
-  const {isPromise} = utils;
+  const {isVal, isPromise} = utils;
 
   const validation = (...funcs) => {
     // make sure the function is not a constructor
@@ -65,7 +65,7 @@
     return ({input, event, target}) => {
       const value = input.getValue();
 
-      if (value !== null && value !== undefined && value !== '') {
+      if (isVal(value) && value !== '') {
         error = null;
       } else if (event === 'submit'
         || (target === input && (event === 'change' || event === 'blur'))) {
