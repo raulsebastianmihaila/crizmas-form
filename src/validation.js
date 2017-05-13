@@ -135,7 +135,7 @@
     return ({input, event, target}) => {
       const value = input.getValue();
 
-      if (events.includes(event) && target === input) {
+      if (target === input && events.includes(event)) {
         error = null;
         oldValue = value;
 

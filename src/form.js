@@ -11,7 +11,6 @@
     Mvc = require('crizmas-mvc');
     asyncUtils = require('crizmas-async-utils');
     utils = require('crizmas-utils');
-
   } else {
     ({Mvc, asyncUtils, utils} = window.crizmas);
   }
@@ -20,9 +19,9 @@
   const {isVal, isFunc} = utils;
 
   const Input = Mvc.controller(function (config = {}) {
-    const {name, validate, init, actions, parent, onFormChange,
+    const {name, validate, init, actions, parent, root, onFormChange,
       preventInputPendingBlocking, preventPendingBlocking} = config;
-    let {getValue, setValue, children, initialValue, clearValue, root} = config;
+    let {getValue, setValue, children, initialValue, clearValue} = config;
     let childrenMap = new Map();
     let isSelfInputPending = false;
 
@@ -37,17 +36,17 @@
       errors: null,
       parent,
       initialValue,
-      onFormChange
+      onFormChange,
+
+      get isPendingBlocked() {
+        return (!preventPendingBlocking && input.isPending)
+          || (!preventInputPendingBlocking && input.isInputPending);
+      },
+
+      get isBlocked() {
+        return input.hasErrors || input.isPendingBlocked;
+      }
     };
-
-    Reflect.defineProperty(input, 'isPendingBlocked', {
-      get: () => (!preventPendingBlocking && input.isPending)
-        || (!preventInputPendingBlocking && input.isInputPending)
-    });
-
-    Reflect.defineProperty(input, 'isBlocked', {
-      get: () => input.hasErrors || input.isPendingBlocked
-    });
 
     const initInput = () => {
       input.root = root || input;
@@ -77,18 +76,20 @@
         new Input(Object.assign({}, child, {root: input.root, parent: input})));
 
       if (children) {
-        children.forEach((child) => {
-          if (isVal(child.name)) {
-            if (childrenMap.has(child.name)) {
-              throw new Error(`Duplicate child name: ${child.name}`);
-            }
-
-            childrenMap.set(child.name, child);
-          }
-        });
+        children.forEach(addChildToMap);
       }
 
       Mvc.observe(actions);
+    };
+
+    const addChildToMap = (child) => {
+      if (isVal(child.name)) {
+        if (childrenMap.has(child.name)) {
+          throw new Error(`Duplicate child name: ${child.name}`);
+        }
+
+        childrenMap.set(child.name, child);
+      }
     };
 
     input.onChange = (val) => {
@@ -171,6 +172,8 @@
               input.errors = errors;
               input.hasErrors = true;
             } else {
+              // even though we set the errors to null before awaiting, we need to set them again
+              // because it's possible that there was another validation done in the meantime
               input.errors = null;
               input.hasErrors = false;
             }
@@ -215,7 +218,7 @@
 
       input.validate({event: 'submit', target: input});
 
-      // after validation must recheck if is blocked
+      // after validation must recheck if it's blocked
       if (input.actions && input.actions.submit && !input.isBlocked) {
         input.actions.submit.apply(input, args);
       }
@@ -254,7 +257,7 @@
         input.root.markAsDirty();
         input.root.validate({event: 'reset', target: input});
 
-        // after validation must recheck if is blocked
+        // after validation must recheck if it's pending blocked
         if (input.actions && input.actions.reset && !input.isPendingBlocked) {
           input.actions.reset.call(input);
         }
@@ -289,7 +292,7 @@
         input.root.markAsDirty();
         input.root.validate({event: 'clear', target: input});
 
-        // after validation must recheck if is blocked
+        // after validation must recheck if it's pending blocked
         if (input.actions && input.actions.clear && !input.isPendingBlocked) {
           input.actions.clear.call(input);
         }
@@ -308,6 +311,7 @@
       }
 
       childInput.parent = input;
+
       childInput.setRoot(input.root);
 
       if (!children) {
@@ -315,15 +319,7 @@
       }
 
       children.push(childInput);
-
-      if (isVal(childInput.name)) {
-        if (childrenMap.has(childInput.name)) {
-          throw new Error(`Duplicate child name: ${childInput.name}`);
-        }
-
-        childrenMap.set(childInput.name, childInput);
-      }
-
+      addChildToMap(childInput);
       Mvc.addObservedChild(input, childInput);
 
       input.markAsInputPending();
