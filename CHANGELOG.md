@@ -1,3 +1,10 @@
+<a name="0.2.8"></a>
+# [0.2.8](https://github.com/raulsebastianmihaila/crizmas-form/compare/v0.2.7...v0.2.8) (2017-05-28)
+
+### Updates
+- Added a `validate` function that accepts a validation function and a list of events.
+- Refactored the `required` validation function to use the `validate` function.
+
 <a name="0.2.7"></a>
 # [0.2.7](https://github.com/raulsebastianmihaila/crizmas-form/compare/v0.2.6...v0.2.7) (2017-05-14)
 

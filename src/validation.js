@@ -59,28 +59,36 @@
     }).function;
   };
 
-  validation.required = ({messageFunc} = {}) => {
+  validation.validate = (validationFunc, {events = ['change', 'blur']} = {}) => {
     let error;
 
     return ({input, event, target}) => {
       const value = input.getValue();
+      const validationResult = validationFunc(value);
 
-      if (isVal(value) && value !== '') {
+      if (!validationResult) {
         error = null;
-      } else if (event === 'submit'
-        || (target === input && (event === 'change' || event === 'blur'))) {
-        error = messageFunc && messageFunc()
-          || validation.required.messageFunc && validation.required.messageFunc()
-          || 'Required';
+      } else if (event === 'submit' || target === input && events.includes(event)) {
+        error = validationResult;
       }
 
       return error;
     };
   };
 
+  validation.required = ({messageFunc} = {}) => {
+    return validation.validate((value) => {
+      if (value === '' || !isVal(value)) {
+        return messageFunc && messageFunc()
+          || validation.required.messageFunc && validation.required.messageFunc()
+          || 'Required';
+      }
+    });
+  };
+
   validation.min = (minValue, {messageFunc} = {}) => {
     return ({input}) => {
-      const value =  input.getValue();
+      const value = input.getValue();
 
       if (value < minValue) {
         return messageFunc && messageFunc({minValue, value})
