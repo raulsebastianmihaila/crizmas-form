@@ -1,6 +1,6 @@
 {
   "name": "crizmas-form",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "Form tools used in conjunction with the crizmas-mvc framework.",
   "private": true,
   "author": {
