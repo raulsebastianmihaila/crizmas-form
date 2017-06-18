@@ -36,7 +36,6 @@
       errors: null,
       parent,
       initialValue,
-      onFormChange,
 
       get isPendingBlocked() {
         return (!preventPendingBlocking && input.isPending)
@@ -47,6 +46,8 @@
         return input.hasErrors || input.isPendingBlocked;
       }
     };
+
+    input.onFormChange = onFormChange;
 
     const initInput = () => {
       input.root = root || input;
