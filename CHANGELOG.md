@@ -1,3 +1,9 @@
+<a name="1.0.0"></a>
+# [1.0.0](https://github.com/raulsebastianmihaila/crizmas-form/compare/v0.2.10...v1.0.0) (2017-07-30)
+
+### Updates
+- Updated the versions of crizmas-mvc, crizmas-utils, crizmas-async-utils and crizmas-promise-queue peer dependencies.
+
 <a name="0.2.10"></a>
 # [0.2.10](https://github.com/raulsebastianmihaila/crizmas-form/compare/v0.2.9...v0.2.10) (2017-06-22)
 
