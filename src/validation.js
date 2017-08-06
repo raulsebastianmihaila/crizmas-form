@@ -16,6 +16,8 @@
   const {isVal, isPromise} = utils;
 
   const validation = (...funcs) => {
+    const validationPromiseQueue = new PromiseQueue();
+
     // make sure the function is not a constructor
     return ({
       function(...args) {
@@ -35,11 +37,15 @@
         });
 
         if (error) {
+          // override possible pending validation result and also potentially
+          // trigger the pending state update earlier on the input controller
+          validationPromiseQueue.add(Promise.resolve(error));
+
           return error;
         }
 
         if (promisedErrors.length) {
-          return Promise.all(promisedErrors).then((results) => {
+          return validationPromiseQueue.add(Promise.all(promisedErrors).then((results) => {
             const errors = [];
 
             results.forEach((result) => {
@@ -53,7 +59,7 @@
             });
 
             return errors;
-          });
+          }));
         }
       }
     }).function;
@@ -116,7 +122,8 @@
 
       if (typeof value === 'string' && value.length < minLength) {
         return messageFunc && messageFunc({minLength, value})
-          || validation.minLength.messageFunc && value.minLength.messageFunc({minLength, value})
+          || validation.minLength.messageFunc
+            && validation.minLength.messageFunc({minLength, value})
           || `Minimum allowed length is ${minLength}`;
       }
     };
@@ -128,7 +135,8 @@
 
       if (typeof value === 'string' && value.length > maxLength) {
         return messageFunc && messageFunc({maxLength, value})
-          || validation.maxLength.messageFunc && value.maxLength.messageFunc({maxLength, value})
+          || validation.maxLength.messageFunc
+            && validation.maxLength.messageFunc({maxLength, value})
           || `Maximum allowed length is ${maxLength}`;
       }
     };
@@ -137,10 +145,23 @@
   validation.async = (promiseFunc, {events = ['change']} = {}) => {
     let error;
     let oldValue;
+    let input;
 
-    const validationPromiseQueue = new PromiseQueue();
+    const validationPromiseQueue = new PromiseQueue({
+      done: (err) => {
+        const value = input.getValue();
 
-    return ({input, event, target}) => {
+        if (value === oldValue) {
+          error = err;
+        }
+
+        oldValue = value;
+      }
+    });
+
+    return ({input: input_, event, target}) => {
+      input = input_;
+
       const value = input.getValue();
 
       if (target === input && events.includes(event)) {
@@ -148,14 +169,16 @@
         oldValue = value;
 
         return validationPromiseQueue.add(promiseFunc(value))
-          .then((err) => {
-            error = err;
-
+          .then(() => {
             return error;
           });
       }
 
       if (value !== oldValue) {
+        // override possible pending validation result and also potentially
+        // trigger the pending state update earlier on the input controller
+        validationPromiseQueue.add(Promise.resolve(null));
+
         error = null;
       }
 

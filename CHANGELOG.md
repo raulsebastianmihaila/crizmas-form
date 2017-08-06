@@ -1,3 +1,19 @@
+<a name="1.1.0"></a>
+# [1.1.0](https://github.com/raulsebastianmihaila/crizmas-form/compare/v1.0.0...v1.1.0) (2018-04-21)
+
+### Features
+- `input.add` and `input.addChild` can receive an index as the second argument in order to insert the new child at that position.
+- `validation` is now uses a promise queue in order to replace older pending validations.
+- `validation.async` checks if the input's value changed during the async validation, in which case it doesn't use the new error anymore and also replaces the pending validation if the value was changed when the initiated validation is ignored.
+
+### Fixes
+- Fix typos in `validation.minLength` and `validation.maxLength`
+
+### Updates
+- Add tests.
+- Add MIT license to package.json.
+- Updated the versions of crizmas-mvc, crizmas-utils, crizmas-async-utils and crizmas-promise-queue peer dependencies.
+
 <a name="1.0.0"></a>
 # [1.0.0](https://github.com/raulsebastianmihaila/crizmas-form/compare/v0.2.10...v1.0.0) (2017-07-30)
 

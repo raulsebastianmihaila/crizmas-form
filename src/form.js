@@ -302,11 +302,11 @@
 
     input.get = Mvc.ignore((name) => childrenMap.get(name));
 
-    input.add = (childConfig) => {
-      input.addChild(new Input(childConfig));
+    input.add = (childConfig, index) => {
+      input.addChild(new Input(childConfig), index);
     };
 
-    input.addChild = (childInput) => {
+    input.addChild = (childInput, index) => {
       if (childInput.parent) {
         throw new Error('The child input already has a parent.');
       }
@@ -319,7 +319,12 @@
         input.children = children = [];
       }
 
-      children.push(childInput);
+      if (isVal(index)) {
+        children.splice(index, 0, childInput);
+      } else {
+        children.push(childInput);
+      }
+
       addChildToMap(childInput);
       Mvc.addObservedChild(input, childInput);
 
@@ -345,6 +350,10 @@
     };
 
     input.removeChild = (child) => {
+      if (!children) {
+        throw new Error('Input doesn\'t have the child.');
+      }
+
       const childIndex = children.indexOf(child);
 
       if (childIndex === -1) {
