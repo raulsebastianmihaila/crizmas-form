@@ -1,3 +1,5 @@
+'use strict';
+
 const Form = require('../src/form');
 const validation = require('../src/validation');
 const Mvc = require('crizmas-mvc');

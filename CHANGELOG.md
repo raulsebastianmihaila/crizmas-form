@@ -1,3 +1,12 @@
+<a name="1.1.1"></a>
+# [1.1.1](https://github.com/raulsebastianmihaila/crizmas-form/compare/v1.1.0...v1.1.1) (2018-12-08)
+
+### Updates
+- Enable strict mode in tests.
+- Update crizmas-mvc, crizmas-async-utils, crizmas-utils and crizmas-promise-queue peer dependencies.
+- Update crizmas-mvc, crizmas-async-utils, crizmas-utils, crizmas-promise-queue, react, react-dom, prop-types and jest dev dependencies for tests.
+- Update package-lock for dev dependencies to fix jest vulnerabilities.
+
 <a name="1.1.0"></a>
 # [1.1.0](https://github.com/raulsebastianmihaila/crizmas-form/compare/v1.0.0...v1.1.0) (2018-04-21)
 
