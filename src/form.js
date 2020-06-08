@@ -183,15 +183,15 @@
     };
 
     const callOnFormChange = () => {
-      let changedInput = input;
+      let changeHandlingInput = input;
 
       do {
-        if (isFunc(changedInput.onFormChange)) {
-          changedInput.onFormChange({target: input, input: changedInput});
+        if (isFunc(changeHandlingInput.onFormChange)) {
+          changeHandlingInput.onFormChange({target: input, input: changeHandlingInput});
         }
 
-        changedInput = changedInput.parent;
-      } while (changedInput);
+        changeHandlingInput = changeHandlingInput.parent;
+      } while (changeHandlingInput);
     };
 
     input.onStartPending = () => {
