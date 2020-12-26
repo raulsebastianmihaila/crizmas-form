@@ -1,5 +1,3 @@
-const Form = require('./src/form');
-
-Form.validation = require('./src/validation');
-
-module.exports = Form;
+export {default as default, Input} from './src/form.js';
+export {validation, validate, required, min, max, minLength, maxLength, async}
+  from './src/validation.js';

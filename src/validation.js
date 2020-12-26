@@ -1,198 +1,252 @@
-(() => {
-  'use strict';
+import {isVal, isThenable, PromiseQueue} from 'crizmas-mvc';
 
-  const isModule = typeof module === 'object' && typeof module.exports === 'object';
+export const validation = (...funcs) => {
+  const validationPromiseQueue = new PromiseQueue();
 
-  let PromiseQueue;
-  let utils;
+  // make sure the function is not a constructor
+  return ({
+    function(...args) {
+      let error;
+      let promisedErrors = [];
 
-  if (isModule) {
-    PromiseQueue = require('crizmas-promise-queue');
-    utils = require('crizmas-utils');
-  } else {
-    ({PromiseQueue, utils} = window.crizmas);
-  }
+      funcs.some((func) => {
+        const validationResult = func.apply(this, args);
 
-  const {isVal, isPromise} = utils;
-
-  const validation = (...funcs) => {
-    const validationPromiseQueue = new PromiseQueue();
-
-    // make sure the function is not a constructor
-    return ({
-      function(...args) {
-        let error;
-        let promisedErrors = [];
-
-        funcs.some((func) => {
-          const validationResult = func.apply(this, args);
-
-          if (isPromise(validationResult)) {
-            promisedErrors.push(validationResult);
-          } else {
-            error = validationResult;
-
-            return error;
-          }
-        });
-
-        if (error) {
-          // override possible pending validation result and also potentially
-          // trigger the pending state update earlier on the input controller
-          validationPromiseQueue.add(Promise.resolve(error));
+        if (isThenable(validationResult)) {
+          promisedErrors.push(validationResult);
+        } else {
+          error = validationResult;
 
           return error;
         }
+      });
 
-        if (promisedErrors.length) {
-          return validationPromiseQueue.add(Promise.all(promisedErrors).then((results) => {
-            const errors = [];
+      if (error) {
+        // override possible pending validation result and also potentially
+        // trigger the pending state update earlier on the input controller
+        validationPromiseQueue.add(Promise.resolve(error));
 
-            results.forEach((result) => {
-              if (result) {
-                if (Array.isArray(result)) {
-                  errors.push(...result);
-                } else {
-                  errors.push(result);
-                }
+        return error;
+      }
+
+      if (promisedErrors.length) {
+        return validationPromiseQueue.add(Promise.all(promisedErrors).then((results) => {
+          const errors = [];
+
+          results.forEach((result) => {
+            if (result) {
+              if (Array.isArray(result)) {
+                errors.push(...result);
+              } else {
+                errors.push(result);
               }
-            });
+            }
+          });
 
-            return errors;
-          }));
-        }
+          return errors;
+        }));
       }
-    }).function;
+    }
+  }).function;
+};
+
+export const validate = (
+  validationFunc,
+  {
+    events,
+    ignoreEvent = false,
+    target: targetFunc
+  } = {}) => {
+  let error;
+
+  return ({input, event, target}) => {
+    const validationResult = validationFunc({input, event, target});
+
+    if (!validationResult) {
+      error = null;
+    } else if (error) {
+      // it's possible that the error was changed
+      error = validationResult;
+    } else if (ignoreEvent
+      || event === 'submit'
+      // it's good to check the events first because based on that we might not need to check
+      // the target as well which means that in the target function we can access variables
+      // that may otherwise be uninitialized
+      || (events || validate.events || ['blur']).includes(event)
+        && target === (targetFunc ? targetFunc({input, event, target}) : input)) {
+      error = validationResult;
+    }
+
+    return error;
   };
+};
 
-  validation.validate = (validationFunc, {events = ['change', 'blur']} = {}) => {
-    let error;
-
-    return ({input, event, target}) => {
+export const required = ({
+  message,
+  events,
+  ignoreEvent
+} = {}) => {
+  return validate(
+    ({input, event, target}) => {
       const value = input.getValue();
-      const validationResult = validationFunc(value);
 
-      if (!validationResult) {
-        error = null;
-      } else if (event === 'submit' || target === input && events.includes(event)) {
-        error = validationResult;
-      }
-
-      return error;
-    };
-  };
-
-  validation.required = ({messageFunc} = {}) => {
-    return validation.validate((value) => {
       if (value === '' || !isVal(value)) {
-        return messageFunc && messageFunc()
-          || validation.required.messageFunc && validation.required.messageFunc()
+        return message && message({value, input, event, target})
+          || required.message && required.message({value, input, event, target})
           || 'Required';
       }
-    });
-  };
+    },
 
-  validation.min = (minValue, {messageFunc} = {}) => {
-    return ({input}) => {
+    {
+      events: events || required.events,
+      ignoreEvent
+    });
+};
+
+export const min = (
+  minValue,
+  {
+    message,
+    events,
+    ignoreEvent
+  } = {}) => {
+  return validate(
+    ({input, event, target}) => {
       const value = input.getValue();
 
-      if (value < minValue) {
-        return messageFunc && messageFunc({minValue, value})
-          || validation.min.messageFunc && validation.min.messageFunc({minValue, value})
+      if (typeof value === 'number' && value < minValue) {
+        return message && message({minValue, value, input, event, target})
+          || min.message && min.message({minValue, value, input, event, target})
           || `Minimum allowed is ${minValue}`;
       }
-    };
-  };
+    },
 
-  validation.max = (maxValue, {messageFunc} = {}) => {
-    return ({input}) => {
+    {
+      events: events || min.events,
+      ignoreEvent
+    });
+};
+
+export const max = (
+  maxValue,
+  {
+    message,
+    events,
+    ignoreEvent
+  } = {}) => {
+  return validate(
+    ({input, event, target}) => {
       const value = input.getValue();
 
-      if (value > maxValue) {
-        return messageFunc && messageFunc({maxValue, value})
-          || validation.max.messageFunc && validation.max.messageFunc({maxValue, value})
+      if (typeof value === 'number' && value > maxValue) {
+        return message && message({maxValue, value, input, event, target})
+          || max.message && max.message({maxValue, value, input, event, target})
           || `Maximum allowed is ${maxValue}`;
       }
-    };
-  };
+    },
 
-  validation.minLength = (minLength, {messageFunc} = {}) => {
-    return ({input}) => {
-      const value = input.getValue();
-
-      if (typeof value === 'string' && value.length < minLength) {
-        return messageFunc && messageFunc({minLength, value})
-          || validation.minLength.messageFunc
-            && validation.minLength.messageFunc({minLength, value})
-          || `Minimum allowed length is ${minLength}`;
-      }
-    };
-  };
-
-  validation.maxLength = (maxLength, {messageFunc} = {}) => {
-    return ({input}) => {
-      const value = input.getValue();
-
-      if (typeof value === 'string' && value.length > maxLength) {
-        return messageFunc && messageFunc({maxLength, value})
-          || validation.maxLength.messageFunc
-            && validation.maxLength.messageFunc({maxLength, value})
-          || `Maximum allowed length is ${maxLength}`;
-      }
-    };
-  };
-
-  validation.async = (promiseFunc, {events = ['change']} = {}) => {
-    let error;
-    let oldValue;
-    let input;
-
-    const validationPromiseQueue = new PromiseQueue({
-      done: (err) => {
-        const value = input.getValue();
-
-        if (value === oldValue) {
-          error = err;
-        }
-
-        oldValue = value;
-      }
+    {
+      events: events || max.events,
+      ignoreEvent
     });
+};
 
-    return ({input: input_, event, target}) => {
-      input = input_;
-
+export const minLength = (
+  minLength_,
+  {
+    message,
+    events,
+    ignoreEvent
+  } = {}) => {
+  return validate(
+    ({input, event, target}) => {
       const value = input.getValue();
 
-      if (target === input && events.includes(event)) {
+      if (typeof value === 'string' && value.length < minLength_) {
+        return message && message({minLength: minLength_, value, input, event, target})
+          || minLength.message
+            && minLength.message({minLength: minLength_, value, input, event, target})
+          || `Minimum allowed length is ${minLength_}`;
+      }
+    },
+
+    {
+      events: events || minLength.events,
+      ignoreEvent
+    });
+};
+
+export const maxLength = (
+  maxLength_,
+  {
+    message,
+    events,
+    ignoreEvent
+  } = {}) => {
+  return validate(
+    ({input, event, target}) => {
+      const value = input.getValue();
+
+      if (typeof value === 'string' && value.length > maxLength_) {
+        return message && message({maxLength: maxLength_, value, input, event, target})
+          || maxLength.message
+            && maxLength.message({maxLength: maxLength_, value, input, event, target})
+          || `Maximum allowed length is ${maxLength_}`;
+      }
+    },
+
+    {
+      events: events || maxLength.events,
+      ignoreEvent
+    });
+};
+
+export const async = (promiseFunc, {events} = {}) => {
+  let error;
+  let oldValue;
+  let input;
+
+  const validationPromiseQueue = new PromiseQueue({
+    done: (err) => {
+      const value = input.getValue();
+
+      if (value === oldValue) {
+        error = err;
+      }
+
+      oldValue = value;
+    }
+  });
+
+  return ({input: input_, event, target}) => {
+    input = input_;
+
+    const value = input.getValue();
+
+    if (target === input && (events || async.events || ['change']).includes(event)) {
+      const promise = promiseFunc(value);
+
+      if (promise) {
         error = null;
         oldValue = value;
 
-        return validationPromiseQueue.add(promiseFunc(value))
+        return validationPromiseQueue.add(promise)
           .then(() => {
             return error;
           });
       }
+    }
 
-      if (value !== oldValue) {
-        // override possible pending validation result and also potentially
-        // trigger the pending state update earlier on the input controller
-        validationPromiseQueue.add(Promise.resolve(null));
+    if (value !== oldValue) {
+      // override possible pending validation result and also potentially
+      // trigger the pending state update earlier on the input controller
+      validationPromiseQueue.add(Promise.resolve(null));
 
-        error = null;
-      }
+      error = null;
+    }
 
-      oldValue = value;
+    oldValue = value;
 
-      return error;
-    };
+    return error;
   };
-
-  const moduleExports = validation;
-
-  if (isModule) {
-    module.exports = moduleExports;
-  } else {
-    window.crizmas.validation = moduleExports;
-  }
-})();
+};

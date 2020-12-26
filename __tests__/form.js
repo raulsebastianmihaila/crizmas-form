@@ -1,11 +1,8 @@
-'use strict';
+import {jest} from '@jest/globals';
+import * as observe from 'crizmas-mvc/src/observe.js';
 
-const Form = require('../src/form');
-const validation = require('../src/validation');
-const Mvc = require('crizmas-mvc');
-const observe = require('crizmas-mvc/src/observe');
-
-const {Input} = Form;
+import Form, {Input} from '../src/form.js';
+import * as validation from '../src/validation.js';
 
 describe('form', () => {
   describe('Input', () => {
@@ -86,11 +83,11 @@ describe('form', () => {
       const observation = jest.fn();
 
       expect(() => new Input({
-        getValue: Mvc.observe(() => {}),
+        getValue: observe.observe(() => {}),
         setValue() {}
       })).toThrowError(Error);
       expect(() => new Input({
-        getValue: Mvc.observe(() => {}),
+        getValue: observe.observe(() => {}),
         setValue() {}
       })).toThrowError('Observed non-promise object or function cannot be ignored.');
 
@@ -1620,8 +1617,8 @@ describe('form', () => {
             name: 'username',
             getValue: () => username,
             setValue() {},
-            validate: validation(
-              validation.required(),
+            validate: validation.validation(
+              validation.required({events: ['change']}),
               validation.async((value) =>
                 Promise.resolve(value === 'john' ? 'username is taken' : null)))
           },
@@ -1629,13 +1626,15 @@ describe('form', () => {
             name: 'password',
             getValue: () => password,
             setValue() {},
-            validate: validation(
+            validate: validation.validation(
               validation.required(),
-              validation.validate((value) => {
+              validation.validate(({input}) => {
+                const value = input.getValue();
+
                 return value && value.length < 6
                   ? 'invalid password'
                   : null;
-              }, {events: ['blur']})
+              })
             )
           }
         ]
@@ -1727,13 +1726,15 @@ describe('form', () => {
             name: 'password',
             getValue: () => password,
             setValue() {},
-            validate: validation(
+            validate: validation.validation(
               validation.required(),
-              validation.validate((value) => {
+              validation.validate(({input}) => {
+                const value = input.getValue();
+
                 return value && value.length < 6
                   ? 'invalid password'
                   : null;
-              }, {events: ['blur']})
+              })
             )
           }
         ]
@@ -1802,8 +1803,8 @@ describe('form', () => {
             name: 'username',
             getValue: () => username,
             setValue() {},
-            validate: validation(
-              validation.required(),
+            validate: validation.validation(
+              validation.required({events: ['change']}),
               validation.async((value) =>
                 Promise.resolve(value === 'john' ? 'username is taken' : null)))
           },
@@ -1811,13 +1812,15 @@ describe('form', () => {
             name: 'password',
             getValue: () => password,
             setValue() {},
-            validate: validation(
+            validate: validation.validation(
               validation.required(),
-              validation.validate((value) => {
+              validation.validate(({input}) => {
+                const value = input.getValue();
+
                 return value && value.length < 6
                   ? 'invalid password'
                   : null;
-              }, {events: ['blur']})
+              })
             )
           }
         ]
@@ -1886,8 +1889,8 @@ describe('form', () => {
             name: 'username',
             getValue: () => username,
             setValue() {},
-            validate: validation(
-              validation.required(),
+            validate: validation.validation(
+              validation.required({events: ['change']}),
               validation.async((value) =>
                 Promise.resolve(value === 'john' ? 'username is taken' : null)))
           },
@@ -1895,13 +1898,15 @@ describe('form', () => {
             name: 'password',
             getValue: () => password,
             setValue() {},
-            validate: validation(
+            validate: validation.validation(
               validation.required(),
-              validation.validate((value) => {
+              validation.validate(({input}) => {
+                const value = input.getValue();
+
                 return value && value.length < 6
                   ? 'invalid password'
                   : null;
-              }, {events: ['blur']})
+              })
             )
           }
         ]
@@ -1986,8 +1991,8 @@ describe('form', () => {
             name: 'username',
             getValue: () => username,
             setValue() {},
-            validate: validation(
-              validation.required(),
+            validate: validation.validation(
+              validation.required({events: ['change']}),
               validation.async((value) =>
                 Promise.resolve(value === 'john' ? 'username is taken' : null)))
           },
@@ -1995,13 +2000,15 @@ describe('form', () => {
             name: 'password',
             getValue: () => password,
             setValue() {},
-            validate: validation(
+            validate: validation.validation(
               validation.required(),
-              validation.validate((value) => {
+              validation.validate(({input}) => {
+                const value = input.getValue();
+
                 return value && value.length < 6
                   ? 'invalid password'
                   : null;
-              }, {events: ['blur']})
+              })
             )
           }
         ]
@@ -2086,8 +2093,8 @@ describe('form', () => {
             name: 'username',
             getValue: () => username,
             setValue() {},
-            validate: validation(
-              validation.required(),
+            validate: validation.validation(
+              validation.required({events: ['change']}),
               validation.async((value) =>
                 Promise.resolve(value === 'john' ? 'username is taken' : null)))
           },
@@ -2095,13 +2102,15 @@ describe('form', () => {
             name: 'password',
             getValue: () => password,
             setValue() {},
-            validate: validation(
+            validate: validation.validation(
               validation.required(),
-              validation.validate((value) => {
+              validation.validate(({input}) => {
+                const value = input.getValue();
+
                 return value && value.length < 6
                   ? 'invalid password'
                   : null;
-              }, {events: ['blur']})
+              })
             )
           }
         ]
@@ -2169,8 +2178,8 @@ describe('form', () => {
             name: 'username',
             getValue: () => username,
             setValue() {},
-            validate: validation(
-              validation.required(),
+            validate: validation.validation(
+              validation.required({events: ['change']}),
               validation.async((value) =>
                 Promise.resolve(value === 'john' ? 'username is taken' : null)))
           },
@@ -2178,13 +2187,15 @@ describe('form', () => {
             name: 'password',
             getValue: () => password,
             setValue() {},
-            validate: validation(
+            validate: validation.validation(
               validation.required(),
-              validation.validate((value) => {
+              validation.validate(({input}) => {
+                const value = input.getValue();
+
                 return value && value.length < 6
                   ? 'invalid password'
                   : null;
-              }, {events: ['blur']})
+              })
             )
           }
         ]
@@ -2254,8 +2265,8 @@ describe('form', () => {
             name: 'username',
             getValue: () => username,
             setValue() {},
-            validate: validation(
-              validation.required(),
+            validate: validation.validation(
+              validation.required({events: ['change']}),
               validation.async((value) =>
                 Promise.resolve(value === 'john' ? 'username is taken' : null)))
           },
@@ -2263,8 +2274,8 @@ describe('form', () => {
             name: 'nickname',
             getValue: () => nickname,
             setValue() {},
-            validate: validation(
-              validation.required(),
+            validate: validation.validation(
+              validation.required({events: ['change']}),
               validation.async((value) =>
                 Promise.resolve(value === 'neo' ? 'nickname is taken' : null)))
           },
@@ -2272,13 +2283,15 @@ describe('form', () => {
             name: 'password',
             getValue: () => password,
             setValue() {},
-            validate: validation(
+            validate: validation.validation(
               validation.required(),
-              validation.validate((value) => {
+              validation.validate(({input}) => {
+                const value = input.getValue();
+
                 return value && value.length < 6
                   ? 'invalid password'
                   : null;
-              }, {events: ['blur']})
+              })
             )
           }
         ]
@@ -2411,8 +2424,8 @@ describe('form', () => {
             name: 'username',
             getValue: () => username,
             setValue() {},
-            validate: validation(
-              validation.required(),
+            validate: validation.validation(
+              validation.required({events: ['change']}),
               validation.async((value) =>
                 Promise.resolve(value === 'john' ? 'username is taken' : null)))
           },
@@ -2420,8 +2433,8 @@ describe('form', () => {
             name: 'nickname',
             getValue: () => nickname,
             setValue() {},
-            validate: validation(
-              validation.required(),
+            validate: validation.validation(
+              validation.required({events: ['change']}),
               validation.async((value) =>
                 Promise.resolve(value === 'neo' ? 'nickname is taken' : null)))
           },
@@ -2429,13 +2442,15 @@ describe('form', () => {
             name: 'password',
             getValue: () => password,
             setValue() {},
-            validate: validation(
+            validate: validation.validation(
               validation.required(),
-              validation.validate((value) => {
+              validation.validate(({input}) => {
+                const value = input.getValue();
+
                 return value && value.length < 6
                   ? 'invalid password'
                   : null;
-              }, {events: ['blur']})
+              })
             )
           }
         ]
@@ -2555,7 +2570,7 @@ describe('form', () => {
 
       form.validate({
         target: form.get('password'),
-        event: 'change'
+        event: 'blur'
       });
 
       expect(form.get('username').hasErrors).toBe(true);
@@ -2587,8 +2602,8 @@ describe('form', () => {
             name: 'username',
             getValue: () => username,
             setValue() {},
-            validate: validation(
-              validation.required(),
+            validate: validation.validation(
+              validation.required({events: ['change']}),
               validation.async((value) =>
                 Promise.resolve(value === 'john' ? 'username is taken' : null)))
           },
@@ -2596,8 +2611,8 @@ describe('form', () => {
             name: 'nickname',
             getValue: () => nickname,
             setValue() {},
-            validate: validation(
-              validation.required(),
+            validate: validation.validation(
+              validation.required({events: ['change']}),
               validation.async((value) =>
                 Promise.resolve(value === 'neo' ? 'nickname is taken' : null)))
           },
@@ -2605,13 +2620,15 @@ describe('form', () => {
             name: 'password',
             getValue: () => password,
             setValue() {},
-            validate: validation(
+            validate: validation.validation(
               validation.required(),
-              validation.validate((value) => {
+              validation.validate(({input}) => {
+                const value = input.getValue();
+
                 return value && value.length < 6
                   ? 'invalid password'
                   : null;
-              }, {events: ['blur']})
+              })
             )
           }
         ]
@@ -2759,7 +2776,7 @@ describe('form', () => {
 
       form.validate({
         target: form.get('child'),
-        event: 'change'
+        event: 'blur'
       });
 
       expect(form.get('child').hasErrors).toBe(true);
@@ -2823,7 +2840,7 @@ describe('form', () => {
 
       form.validate({
         target: form.get('child'),
-        event: 'change'
+        event: 'blur'
       });
 
       expect(form.get('child').hasErrors).toBe(true);
@@ -2867,7 +2884,7 @@ describe('form', () => {
 
       form.validate({
         target: form.get('child'),
-        event: 'change'
+        event: 'blur'
       });
 
       expect(form.get('child').hasErrors).toBe(true);
@@ -2931,7 +2948,7 @@ describe('form', () => {
 
       form.validate({
         target: form.get('child'),
-        event: 'change'
+        event: 'blur'
       });
 
       expect(form.get('child').hasErrors).toBe(true);
@@ -2997,7 +3014,7 @@ describe('form', () => {
 
       form.validate({
         target: form.get('child'),
-        event: 'change'
+        event: 'blur'
       });
 
       expect(form.get('child').hasErrors).toBe(true);
@@ -3225,8 +3242,8 @@ describe('form', () => {
       const form = observe.root(new Form({
         getValue: () => value,
         setValue() {},
-        validate: validation(
-          validation.required(),
+        validate: validation.validation(
+          validation.required({events: ['change']}),
           validation.async(() => Promise.reject('username is taken')))
       }));
 
@@ -3358,7 +3375,7 @@ describe('form', () => {
         getValue: () => value,
         setValue() {},
         // skip init validation
-        validate: validation(({event}) => event === 'init'
+        validate: validation.validation(({event}) => event === 'init'
           ? null
           : value === 'john'
             ? Promise
@@ -3408,8 +3425,8 @@ describe('form', () => {
         getValue: () => value,
         setValue() {},
         // skip init validation
-        validate: validation(
-          validation.required(),
+        validate: validation.validation(
+          validation.required({events: ['change']}),
           validation.async(() => {
             asyncValidationObservation();
 

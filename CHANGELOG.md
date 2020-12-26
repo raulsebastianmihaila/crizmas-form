@@ -1,3 +1,24 @@
+<a name="2.0.0"></a>
+# [2.0.0](https://github.com/raulsebastianmihaila/crizmas-form/compare/v1.1.1...v2.0.0) (2021-01-01)
+
+### Breaking changes
+- Dropped support for non-module script tags.
+- Moved from commonjs modules to standard ES modules, which means the structure of the exports changed: Input is not a property of Form anymore and validate, required, min, max, minLength, maxLength and async are not properties of validation anymore.
+- messageFunc was renamed for all the validation functions that accepted it to 'message'.
+- The default event for validate is now 'blur' instead the list made of 'change' and 'blur'.
+- validate now calls the validation function with an object containing the input, event as target instead of the value.
+- min, max, minLength and maxLength now are based on validate as required is so their defalut event will now be 'blur'.
+- min and max now also check that the type of the value is 'number' before doing further validation.
+- The validation function passed to async can now return a falsy value in which case async behaves as if the validation was skipped (for instance if the event didn't match).
+
+### Updates
+- Updated the crizmas-mvc peer dependency.
+- Updated jest and crizmas-mvc dev dependencies.
+- The message function will receive as an argument an object containing the input, event and target.
+- validate, required, min, max, minLength and maxLength can pass an ignoreEvent option which causes the error to be reported even if the event doesn't match the list of expected events or if the target doesn't match.
+- validate accepts a target function option which receives an object containing the input, event and target and if it is passed validate will check the target agains the result of calling this function instead of checking it against the input.
+- The default events for validate, required, min, max, minLength, maxLength and async can now be changed using validate.events, required.events, min.events, max.events, minLength.events, maxLength.events and async.events. These can be overwritten by passing an events option.
+
 <a name="1.1.1"></a>
 # [1.1.1](https://github.com/raulsebastianmihaila/crizmas-form/compare/v1.1.0...v1.1.1) (2018-12-08)
 

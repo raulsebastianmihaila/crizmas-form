@@ -1,20 +1,18 @@
-'use strict';
+import {jest} from '@jest/globals';
 
-const Form = require('../src/form');
-const validation = require('../src/validation');
-
-const {Input} = Form;
+import {Input} from '../src/form.js';
+import * as validation from '../src/validation.js';
 
 describe('validation', () => {
   describe('validation', () => {
     test('if there are no errors undefined is returned', () => {
       expect.assertions(1);
-      expect(validation()()).toBe(undefined);
+      expect(validation.validation()()).toBe(undefined);
     });
 
     test('first sync error is returned', () => {
       expect.assertions(1);
-      expect(validation(
+      expect(validation.validation(
         () => 'error',
         () => 'error2')()).toBe('error');
     });
@@ -22,7 +20,7 @@ describe('validation', () => {
     test('all promise errors are reported', () => {
       expect.assertions(1);
 
-      return validation(
+      return validation.validation(
         () => Promise.resolve('error1'),
         () => Promise.resolve(),
         () => Promise.resolve(['error2', 'error3']))().then((errors) => {
@@ -33,7 +31,7 @@ describe('validation', () => {
     test('if there is an async error, the result is always an array', () => {
       expect.assertions(1);
 
-      return validation(() => Promise.resolve('error'))().then((errors) => {
+      return validation.validation(() => Promise.resolve('error'))().then((errors) => {
         expect(errors).toEqual(['error']);
       });
     });
@@ -44,7 +42,7 @@ describe('validation', () => {
       const validationFuncObservation = jest.fn();
       const promiseThenObservation = jest.fn();
 
-      return validation(
+      return validation.validation(
         () => Promise.resolve().then(() => Promise.resolve().then(() => {
           expect(promiseThenObservation.mock.calls.length).toBe(0);
           validationFuncObservation();
@@ -64,7 +62,7 @@ describe('validation', () => {
       const firstValidationFuncObservation = jest.fn();
       const thirdValidationFuncObservation = jest.fn();
 
-      expect(validation(
+      expect(validation.validation(
         () => {
           firstValidationFuncObservation();
 
@@ -83,7 +81,7 @@ describe('validation', () => {
 
     test('integration with required', () => {
       expect.assertions(1);
-      expect(validation(
+      expect(validation.validation(
         () => null,
         validation.required())({
           input: new Input({
@@ -102,7 +100,7 @@ describe('validation', () => {
         setValue() {}
       });
 
-      return validation(
+      return validation.validation(
         () => null,
         validation.async(() => Promise.resolve('error')))({
           input,
@@ -121,9 +119,9 @@ describe('validation', () => {
         setValue() {}
       });
 
-      expect(validation(
+      expect(validation.validation(
         validation.async(() => Promise.resolve('error')),
-        validation.required())({
+        validation.required({events: ['change']}))({
           input,
           target: input,
           event: 'change'
@@ -137,7 +135,7 @@ describe('validation', () => {
       const finalSlowValidationObservation = jest.fn();
       let isValidatingSlowly = true;
       const input = new Input();
-      const validationFunc = validation(() => {
+      const validationFunc = validation.validation(() => {
         if (isValidatingSlowly) {
           isValidatingSlowly = false;
 
@@ -183,7 +181,7 @@ describe('validation', () => {
       const finalSlowValidationObservation = jest.fn();
       let isAsyncValidation = true;
       const input = new Input();
-      const validationFunc = validation(() => {
+      const validationFunc = validation.validation(() => {
         if (isAsyncValidation) {
           isAsyncValidation = false;
 
@@ -226,7 +224,7 @@ describe('validation', () => {
   describe('validate', () => {
     test('invalid default submit', () => {
       expect.assertions(1);
-      expect(validation.validate((value) => value === 'test' ? null : 'Invalid')({
+      expect(validation.validate(({input}) => input.getValue() === 'test' ? null : 'Invalid')({
         event: 'submit',
         input: new Input({
           getValue: () => 0,
@@ -237,7 +235,7 @@ describe('validation', () => {
 
     test('valid default submit', () => {
       expect.assertions(1);
-      expect(validation.validate((value) => value === 'test' ? null : 'Invalid')({
+      expect(validation.validate(({input}) => input.getValue() === 'test' ? null : 'Invalid')({
         event: 'submit',
         input: new Input({
           getValue: () => 'test',
@@ -246,21 +244,16 @@ describe('validation', () => {
       })).toBe(null);
     });
 
-    test('change and blur are default events with input as target', () => {
-      expect.assertions(2);
+    test('blur is default event with input as target', () => {
+      expect.assertions(1);
 
       const input = new Input({
         getValue: () => 0,
         setValue() {}
       });
 
-      expect(validation.validate((value) => value === 'test' ? null : 'Invalid')({
+      expect(validation.validate(({input}) => input.getValue() === 'test' ? null : 'Invalid')({
         event: 'blur',
-        input,
-        target: input
-      })).toBe('Invalid');
-      expect(validation.validate((value) => value === 'test' ? null : 'Invalid')({
-        event: 'change',
         input,
         target: input
       })).toBe('Invalid');
@@ -274,7 +267,7 @@ describe('validation', () => {
         setValue() {}
       });
 
-      expect(validation.validate((value) => value === 'test' ? null : 'Invalid')({
+      expect(validation.validate(({input}) => input.getValue() === 'test' ? null : 'Invalid')({
         event: 'custom',
         input,
         target: input
@@ -299,31 +292,55 @@ describe('validation', () => {
     });
 
     test('error on non-submit event is ignored if target is not input', () => {
-      expect.assertions(3);
+      expect.assertions(2);
 
       const input = new Input({
         getValue: () => 0,
         setValue() {}
       });
 
-      expect(validation.validate((value) => value === 'test' ? null : 'Invalid')({
+      expect(validation.validate(({input}) => input.getValue() === 'test' ? null : 'Invalid')({
         event: 'blur',
         input
       })).toBe(undefined);
-      expect(validation.validate((value) => value === 'test' ? null : 'Invalid')({
-        event: 'change',
-        input
-      })).toBe(undefined);
       expect(validation.validate(
-        (value) => value === 'test' ? null : 'Invalid',
+        ({input}) => input.getValue() === 'test' ? null : 'Invalid',
         {events: ['custom']})({
         event: 'custom',
         input
       })).toBe(undefined);
     });
 
-    test('if validation error is ignored the existing error is used', () => {
-      expect.assertions(8);
+    test('custom target can be provided', () => {
+      expect.assertions(2);
+
+      const input = new Input({
+        getValue: () => 0,
+        setValue() {}
+      });
+      const target = new Input();
+
+      expect(validation.validate(
+        ({input}) => input.getValue() === 'test' ? null : 'Invalid',
+        {target: () => target})({
+        event: 'blur',
+        input,
+        target
+      })).toBe('Invalid');
+      expect(validation.validate(
+        ({input}) => input.getValue() === 'test' ? null : 'Invalid',
+        {
+          events: ['custom'],
+          target: () => target
+        })({
+        event: 'custom',
+        input,
+        target
+      })).toBe('Invalid');
+    });
+
+    test('if validation error changes it replaces the existing error', () => {
+      expect.assertions(6);
 
       let inputValue = null;
       const input = new Input({
@@ -331,8 +348,8 @@ describe('validation', () => {
         setValue() {}
       });
       let validationMessage = 'Invalid';
-      const validationFunc = validation.validate((value) =>
-        value === 'test' ? null : validationMessage);
+      const validationFunc = validation.validate(({input}) =>
+        input.getValue() === 'test' ? null : validationMessage);
 
       expect(validationFunc({
         event: 'submit',
@@ -344,15 +361,11 @@ describe('validation', () => {
       expect(validationFunc({
         event: 'blur',
         input
-      })).toBe('Invalid');
-      expect(validationFunc({
-        event: 'change',
-        input
-      })).toBe('Invalid');
+      })).toBe('Another validation message');
       expect(validationFunc({
         event: 'custom',
         input
-      })).toBe('Invalid');
+      })).toBe('Another validation message');
 
       inputValue = 'test';
 
@@ -362,10 +375,6 @@ describe('validation', () => {
       })).toBe(null);
       expect(validationFunc({
         event: 'blur',
-        input
-      })).toBe(null);
-      expect(validationFunc({
-        event: 'change',
         input
       })).toBe(null);
       expect(validationFunc({
@@ -375,14 +384,15 @@ describe('validation', () => {
     });
 
     test('non-submit event is not ignored even if target is not input if there\'s no error', () => {
-      expect.assertions(4);
+      expect.assertions(3);
 
       let inputValue = null;
       const input = new Input({
         getValue: () => inputValue,
         setValue() {}
       });
-      const validationFunc = validation.validate((value) => value === 'test' ? null : 'Invalid');
+      const validationFunc = validation.validate(({input}) =>
+        input.getValue() === 'test' ? null : 'Invalid');
 
       expect(validationFunc({
         event: 'submit',
@@ -396,13 +406,101 @@ describe('validation', () => {
         input
       })).toBe(null);
       expect(validationFunc({
-        event: 'change',
-        input
-      })).toBe(null);
-      expect(validationFunc({
         event: 'custom',
         input
       })).toBe(null);
+    });
+
+    test('error is reported with unrecognized event and with different target when ignoreEvent'
+      + ' is true', () => {
+      expect.assertions(1);
+      expect(validation.validate(
+        ({input}) => input.getValue() === 'test' ? null : 'Invalid',
+        {ignoreEvent: true})({
+        event: 'custom',
+        input: new Input({
+          getValue: () => 0,
+          setValue() {}
+        })
+      })).toBe('Invalid');
+    });
+
+    test('default events can be changed', () => {
+      expect.assertions(3);
+
+      validation.validate.events = ['custom'];
+
+      let inputValue = 0;
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+
+      expect(validation.validate(({input}) => input.getValue() === 'test' ? null : 'Invalid')({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe('Invalid');
+
+      inputValue = 'test';
+
+      expect(validation.validate(({input}) => input.getValue() === 'test' ? null : 'Invalid')({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe(null);
+
+      delete validation.validate.events;
+
+      inputValue = 0;
+
+      expect(validation.validate(({input}) => input.getValue() === 'test' ? null : 'Invalid')({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe(undefined);
+    });
+
+    test('changed default events can be overwritten', () => {
+      expect.assertions(2);
+
+      validation.validate.events = ['defaultCustom'];
+
+      let inputValue = 0;
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+
+      expect(validation.validate(({input}) => input.getValue() === 'test' ? null : 'Invalid')({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe(undefined);
+
+      expect(validation.validate(
+        ({input}) => input.getValue() === 'test' ? null : 'Invalid',
+        {events: ['custom']})({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe('Invalid');
+
+      delete validation.validate.events;
+    });
+
+    test('submit event is still considered even if default events are overwritten', () => {
+      expect.assertions(1);
+
+      expect(
+        validation.validate(({input}) => input.getValue() === 'test' ? null : 'Invalid',
+        {events: ['custom']})({
+        event: 'submit',
+        input: new Input({
+          getValue: () => 0,
+          setValue() {}
+        }),
+      })).toBe('Invalid');
     });
   });
 
@@ -495,10 +593,10 @@ describe('validation', () => {
       })).toBe(null);
     });
 
-    test('messageFunc is used', () => {
+    test('default message is used', () => {
       expect.assertions(1);
 
-      validation.required.messageFunc = () => 'Custom required message';
+      validation.required.message = () => 'Custom required message';
 
       expect(validation.required()({
         event: 'submit',
@@ -508,13 +606,40 @@ describe('validation', () => {
         })
       })).toBe('Custom required message');
 
-      delete validation.required.messageFunc;
+      delete validation.required.message;
     });
 
-    test('option messageFunc is used', () => {
+    test('the default message receives the right arguments', () => {
+      expect.assertions(5);
+
+      const testInput = new Input({
+        getValue() {return null;},
+        setValue() {}
+      });
+      const targetInput = new Input();
+
+      validation.required.message = ({value, input, event, target}) => {
+        expect(value).toBe(null);
+        expect(input).toBe(testInput);
+        expect(target).toBe(targetInput);
+        expect(event).toBe('submit');
+
+        return 'Custom required message';
+      };
+
+      expect(validation.required()({
+        event: 'submit',
+        input: testInput,
+        target: targetInput
+      })).toBe('Custom required message');
+
+      delete validation.required.message;
+    });
+
+    test('option message is used', () => {
       expect.assertions(1);
       expect(validation.required({
-        messageFunc: () => 'Option required message'
+        message: () => 'Option required message'
       })({
         event: 'submit',
         input: new Input({
@@ -524,13 +649,38 @@ describe('validation', () => {
       })).toBe('Option required message');
     });
 
-    test('option messageFunc overwrites required.messageFunc', () => {
-      expect.assertions(1);
+    test('option message receieves the right arguments', () => {
+      expect.assertions(5);
 
-      validation.required.messageFunc = () => 'Custom required message';
+      const testInput = new Input({
+        getValue() {return null;},
+        setValue() {}
+      });
+      const targetInput = new Input();
 
       expect(validation.required({
-        messageFunc: () => 'Overwriting option required message'
+        message: ({value, input, event, target}) => {
+          expect(value).toBe(null);
+          expect(input).toBe(testInput);
+          expect(target).toBe(targetInput);
+          expect(event).toBe('submit');
+
+          return 'Option required message';
+        }
+      })({
+        event: 'submit',
+        input: testInput,
+        target: targetInput
+      })).toBe('Option required message');
+    });
+
+    test('option message overwrites required.message', () => {
+      expect.assertions(1);
+
+      validation.required.message = () => 'Custom required message';
+
+      expect(validation.required({
+        message: () => 'Overwriting option required message'
       })({
         event: 'submit',
         input: new Input({
@@ -539,7 +689,7 @@ describe('validation', () => {
         })
       })).toBe('Overwriting option required message');
 
-      delete validation.required.messageFunc;
+      delete validation.required.message;
     });
 
     test('required validation on submit', () => {
@@ -550,21 +700,6 @@ describe('validation', () => {
           getValue: () => null,
           setValue() {}
         })
-      })).toBe('Required');
-    });
-
-    test('required validation on change with input as target', () => {
-      expect.assertions(1);
-
-      const input = new Input({
-        getValue: () => null,
-        setValue() {}
-      });
-
-      expect(validation.required()({
-        event: 'change',
-        input,
-        target: input
       })).toBe('Required');
     });
 
@@ -581,17 +716,6 @@ describe('validation', () => {
         input,
         target: input
       })).toBe('Required');
-    });
-
-    test('no required validation on change without input as target', () => {
-      expect.assertions(1);
-      expect(validation.required()({
-        event: 'change',
-        input: new Input({
-          getValue: () => null,
-          setValue() {}
-        })
-      })).toBe(undefined);
     });
 
     test('no required validation on blur without input as target', () => {
@@ -616,8 +740,8 @@ describe('validation', () => {
       })).toBe(undefined);
     });
 
-    test('if validation error is ignored the existing error is used', () => {
-      expect.assertions(8);
+    test('if validation error changes it replaces the existing error', () => {
+      expect.assertions(6);
 
       let inputValue = null;
       const input = new Input({
@@ -627,7 +751,7 @@ describe('validation', () => {
       let validationMessage = 'Invalid';
       const validationFunc = validation.required();
 
-      validation.required.messageFunc = () => validationMessage;
+      validation.required.message = () => validationMessage;
 
       expect(validationFunc({
         event: 'submit',
@@ -639,15 +763,11 @@ describe('validation', () => {
       expect(validationFunc({
         event: 'blur',
         input
-      })).toBe('Invalid');
-      expect(validationFunc({
-        event: 'change',
-        input
-      })).toBe('Invalid');
+      })).toBe('Another validation message');
       expect(validationFunc({
         event: 'custom',
         input
-      })).toBe('Invalid');
+      })).toBe('Another validation message');
 
       inputValue = 'test';
 
@@ -660,19 +780,15 @@ describe('validation', () => {
         input
       })).toBe(null);
       expect(validationFunc({
-        event: 'change',
-        input
-      })).toBe(null);
-      expect(validationFunc({
         event: 'custom',
         input
       })).toBe(null);
 
-      delete validation.required.messageFunc;
+      delete validation.required.message;
     });
 
     test('non-submit event is not ignored even if target is not input if there\'s no error', () => {
-      expect.assertions(4);
+      expect.assertions(3);
 
       let inputValue = null;
       const input = new Input({
@@ -693,7 +809,403 @@ describe('validation', () => {
         input
       })).toBe(null);
       expect(validationFunc({
-        event: 'change',
+        event: 'custom',
+        input
+      })).toBe(null);
+    });
+
+    test('custom events can be used', () => {
+      expect.assertions(1);
+
+      const input = new Input();
+
+      expect(validation.required({events: ['custom']})({
+        input,
+        event: 'custom',
+        target: input
+      })).toBe('Required');
+    });
+
+    test('the default events can be changed', () => {
+      expect.assertions(1);
+
+      validation.required.events = ['custom'];
+
+      const input = new Input();
+
+      expect(validation.required()({
+        input,
+        event: 'custom',
+        target: input
+      })).toBe('Required');
+
+      delete validation.required.events;
+    });
+
+    test('the default events can be overwritten', () => {
+      expect.assertions(1);
+
+      validation.required.events = ['customDefault'];
+
+      const input = new Input();
+
+      expect(validation.required({events: ['custom']})({
+        input,
+        event: 'custom',
+        target: input
+      })).toBe('Required');
+
+      delete validation.required.events;
+    });
+
+    test('if events are not customized, the validate defaults are used', () => {
+      expect.assertions(2);
+
+      validation.validate.events = ['custom'];
+
+      let inputValue = null;
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+
+      expect(validation.required()({
+        input,
+        event: 'custom',
+        target: input
+      })).toBe('Required');
+
+      validation.required.events = ['blur'];
+
+      expect(validation.required()({
+        input,
+        event: 'custom',
+        target: input
+      })).toBe(undefined);
+
+      delete validation.validate.events;
+      delete validation.required.events;
+    });
+
+    test('the events can be ignored and validation always performed', () => {
+      expect.assertions(1);
+
+      const input = new Input();
+
+      expect(validation.required({ignoreEvent: true})({
+        input,
+        event: 'custom',
+        target: input
+      })).toBe('Required');
+    });
+
+    test('submit event is still considered even if default events are overwritten', () => {
+      expect.assertions(1);
+
+      const input = new Input();
+
+      expect(validation.required({events: ['custom']})({
+        input,
+        event: 'submit',
+        target: input
+      })).toBe('Required');
+    });
+  });
+
+  describe('min', () => {
+    test('less value is invalid', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 0,
+        setValue() {}
+      });
+
+      expect(validation.min(3)({
+        input,
+        event: 'blur',
+        target: input
+      })).toBe('Minimum allowed is 3');
+    });
+
+    test('greater value is valid', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 0,
+        setValue() {}
+      });
+
+      expect(validation.min(-3)({
+        input,
+        event: 'blur',
+        target: input
+      })).toBe(null);
+    });
+
+    test('equal value is valid', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => -3,
+        setValue() {}
+      });
+
+      expect(validation.min(-3)({
+        input,
+        event: 'blur',
+        target: input
+      })).toBe(null);
+    });
+
+    test('non-numbers are not validated', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => null,
+        setValue() {}
+      });
+
+      expect(validation.min(3)({
+        input,
+        event: 'blur',
+        target: input
+      })).toBe(null);
+    });
+
+    test('default message is used', () => {
+      expect.assertions(1);
+
+      validation.min.message = ({value, minValue}) =>
+        `Custom message: ${value} less than ${minValue}`;
+
+      const input = new Input({
+        getValue: () => 0,
+        setValue() {}
+      });
+
+      expect(validation.min(3)({
+        input,
+        event: 'blur',
+        target: input
+      })).toBe('Custom message: 0 less than 3');
+
+      delete validation.min.message;
+    });
+
+    test('the default message receives the right arguments', () => {
+      expect.assertions(6);
+
+      const testInput = new Input({
+        getValue() {return 0;},
+        setValue() {}
+      });
+      const targetInput = new Input();
+
+      validation.min.message = ({minValue, value, input, event, target}) => {
+        expect(minValue).toBe(3);
+        expect(value).toBe(0);
+        expect(input).toBe(testInput);
+        expect(target).toBe(targetInput);
+        expect(event).toBe('submit');
+
+        return 'Custom min message';
+      };
+
+      expect(validation.min(3)({
+        event: 'submit',
+        input: testInput,
+        target: targetInput
+      })).toBe('Custom min message');
+
+      delete validation.min.message;
+    });
+
+    test('option message is used', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 0,
+        setValue() {}
+      });
+
+      expect(validation.min(3, {
+        message: ({value, minValue}) => `Option message: ${value} less than ${minValue}`
+      })({
+        input,
+        event: 'blur',
+        target: input
+      })).toBe('Option message: 0 less than 3');
+    });
+
+    test('option message receieves the right arguments', () => {
+      expect.assertions(6);
+
+      const testInput = new Input({
+        getValue() {return 0;},
+        setValue() {}
+      });
+      const targetInput = new Input();
+
+      expect(validation.min(3, {
+        message: ({minValue, value, input, event, target}) => {
+          expect(minValue).toBe(3);
+          expect(value).toBe(0);
+          expect(input).toBe(testInput);
+          expect(target).toBe(targetInput);
+          expect(event).toBe('submit');
+
+          return 'Option min message';
+        }
+      })({
+        event: 'submit',
+        input: testInput,
+        target: targetInput
+      })).toBe('Option min message');
+    });
+
+    test('option message overwrites min.message', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 0,
+        setValue() {}
+      });
+
+      validation.min.message = () => 'Custom min message';
+
+      expect(validation.min(3, {
+        message: ({value, minValue}) =>
+          `Overwritting message: ${value} less than ${minValue}`
+      })({
+        input,
+        event: 'blur',
+        target: input
+      })).toBe('Overwritting message: 0 less than 3');
+
+      delete validation.min.message;
+    });
+
+    test('invalid default submit', () => {
+      expect.assertions(1);
+      expect(validation.min(3)({
+        event: 'submit',
+        input: new Input({
+          getValue: () => 0,
+          setValue() {}
+        })
+      })).toBe('Minimum allowed is 3');
+    });
+
+    test('valid default submit', () => {
+      expect.assertions(1);
+      expect(validation.min(3)({
+        event: 'submit',
+        input: new Input({
+          getValue: () => 4,
+          setValue() {}
+        })
+      })).toBe(null);
+    });
+
+    test('blur is default event with input as target', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 0,
+        setValue() {}
+      });
+
+      expect(validation.min(3)({
+        event: 'blur',
+        input,
+        target: input
+      })).toBe('Minimum allowed is 3');
+    });
+
+    test('ignored error on unknown event', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 0,
+        setValue() {}
+      });
+
+      expect(validation.min(3)({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe(undefined);
+    });
+
+    test('custom event', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 0,
+        setValue() {}
+      });
+
+      expect(validation.min(3, {events: ['custom']})({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe('Minimum allowed is 3');
+    });
+
+    test('error on non-submit event is ignored if target is not input', () => {
+      expect.assertions(2);
+
+      const input = new Input({
+        getValue: () => 0,
+        setValue() {}
+      });
+
+      expect(validation.min(3)({
+        event: 'blur',
+        input
+      })).toBe(undefined);
+      expect(validation.min(3, {events: ['custom']})({
+        event: 'custom',
+        input
+      })).toBe(undefined);
+    });
+
+    test('if validation error changes it replaces the existing error', () => {
+      expect.assertions(6);
+
+      let inputValue = 0;
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+      let validationMessage = 'Invalid';
+      const validationFunc = validation.min(3, {message: () => validationMessage});
+
+      expect(validationFunc({
+        event: 'submit',
+        input
+      })).toBe('Invalid');
+
+      validationMessage = 'Another validation message';
+
+      expect(validationFunc({
+        event: 'blur',
+        input
+      })).toBe('Another validation message');
+      expect(validationFunc({
+        event: 'custom',
+        input
+      })).toBe('Another validation message');
+
+      inputValue = 3;
+
+      expect(validationFunc({
+        event: 'submit',
+        input
+      })).toBe(null);
+      expect(validationFunc({
+        event: 'blur',
         input
       })).toBe(null);
       expect(validationFunc({
@@ -701,12 +1213,39 @@ describe('validation', () => {
         input
       })).toBe(null);
     });
-  });
 
-  describe('min', () => {
-    test('less value is invalid', () => {
+    test('non-submit event is not ignored even if target is not input if there\'s no error', () => {
+      expect.assertions(3);
+
+      let inputValue = 0;
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+      const validationFunc = validation.min(3);
+
+      expect(validationFunc({
+        event: 'submit',
+        input
+      })).toBe('Minimum allowed is 3');
+
+      inputValue = 3;
+
+      expect(validationFunc({
+        event: 'blur',
+        input
+      })).toBe(null);
+      expect(validationFunc({
+        event: 'custom',
+        input
+      })).toBe(null);
+    });
+
+    test('error is reported with unrecognized event and with different target when ignoreEvent'
+      + ' is true', () => {
       expect.assertions(1);
-      expect(validation.min(3)({
+      expect(validation.min(3, {ignoreEvent: true})({
+        event: 'custom',
         input: new Input({
           getValue: () => 0,
           setValue() {}
@@ -714,198 +1253,600 @@ describe('validation', () => {
       })).toBe('Minimum allowed is 3');
     });
 
-    test('greater value is valid', () => {
-      expect.assertions(1);
-      expect(validation.min(-3)({
-        input: new Input({
-          getValue: () => 0,
-          setValue() {}
-        })
-      })).toBe(undefined);
-    });
+    test('default events can be changed', () => {
+      expect.assertions(3);
 
-    test('equal value is valid', () => {
-      expect.assertions(1);
-      expect(validation.min(-3)({
-        input: new Input({
-          getValue: () => -3,
-          setValue() {}
-        })
-      })).toBe(undefined);
-    });
+      validation.min.events = ['custom'];
 
-    test('null is treated like 0', () => {
-      expect.assertions(1);
+      let inputValue = 0;
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+
       expect(validation.min(3)({
-        input: new Input({
-          getValue: () => null,
-          setValue() {}
-        })
+        event: 'custom',
+        input,
+        target: input
+      })).toBe('Minimum allowed is 3');
+
+      inputValue = 3;
+
+      expect(validation.min(3)({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe(null);
+
+      delete validation.min.events;
+
+      inputValue = 0;
+
+      expect(validation.min(3)({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe(undefined);
+    });
+
+    test('changed default events can be overwritten', () => {
+      expect.assertions(2);
+
+      validation.min.events = ['defaultCustom'];
+
+      let inputValue = 0;
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+
+      expect(validation.min(3)({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe(undefined);
+
+      expect(validation.min(3, {events: ['custom']})({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe('Minimum allowed is 3');
+
+      delete validation.min.events;
+    });
+
+    test('if events are not customized, the validate defaults are used', () => {
+      expect.assertions(2);
+
+      validation.validate.events = ['custom'];
+
+      let inputValue = 0;
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+
+      expect(validation.min(3)({
+        input,
+        event: 'custom',
+        target: input
+      })).toBe('Minimum allowed is 3');
+
+      validation.min.events = ['blur'];
+
+      expect(validation.min(3)({
+        input,
+        event: 'custom',
+        target: input
+      })).toBe(undefined);
+
+      delete validation.validate.events;
+      delete validation.min.events;
+    });
+
+    test('the events can be ignored and validation always performed', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 0,
+        setValue() {}
+      });
+
+      expect(validation.min(3, {ignoreEvent: true})({
+        input,
+        event: 'custom',
+        target: input
       })).toBe('Minimum allowed is 3');
     });
 
-    test('undefined is not treated like 0', () => {
-      expect.assertions(1);
-      expect(validation.min(-3)({
-        input: new Input({
-          getValue: () => undefined,
-          setValue() {}
-        })
-      })).toBe(undefined);
-    });
-
-    test('messageFunc is used', () => {
+    test('submit event is still considered even if default events are overwritten', () => {
       expect.assertions(1);
 
-      validation.min.messageFunc = ({value, minValue}) =>
-        `Custom message: ${value} less than ${minValue}`;
-
-      expect(validation.min(3)({
+      expect(
+        validation.min(3, {events: ['custom']})({
+        event: 'submit',
         input: new Input({
           getValue: () => 0,
           setValue() {}
-        })
-      })).toBe('Custom message: 0 less than 3');
-
-      delete validation.min.messageFunc;
-    });
-
-    test('option messageFunc is used', () => {
-      expect.assertions(1);
-      expect(validation.min(3, {
-        messageFunc: ({value, minValue}) => `Option message: ${value} less than ${minValue}`
-      })({
-        input: new Input({
-          getValue: () => 0,
-          setValue() {}
-        })
-      })).toBe('Option message: 0 less than 3');
-    });
-
-    test('option messageFunc overwrites min.messageFunc', () => {
-      expect.assertions(1);
-
-      validation.min.messageFunc = () => 'Custom min message';
-
-      expect(validation.min(3, {
-        messageFunc: ({value, minValue}) => `Overwritting message: ${value} less than ${minValue}`
-      })({
-        input: new Input({
-          getValue: () => 0,
-          setValue() {}
-        })
-      })).toBe('Overwritting message: 0 less than 3');
-
-      delete validation.min.messageFunc;
+        }),
+      })).toBe('Minimum allowed is 3');
     });
   });
 
   describe('max', () => {
     test('greater value is invalid', () => {
       expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 0,
+        setValue() {}
+      });
+
       expect(validation.max(-3)({
-        input: new Input({
-          getValue: () => 0,
-          setValue() {}
-        })
+        input,
+        event: 'blur',
+        target: input
       })).toBe('Maximum allowed is -3');
     });
 
     test('less value is valid', () => {
       expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 0,
+        setValue() {}
+      });
+
       expect(validation.max(3)({
-        input: new Input({
-          getValue: () => 0,
-          setValue() {}
-        })
-      })).toBe(undefined);
+        input,
+        event: 'blur',
+        target: input
+      })).toBe(null);
     });
 
     test('equal value is valid', () => {
       expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 3,
+        setValue() {}
+      });
+
       expect(validation.max(3)({
-        input: new Input({
-          getValue: () => 3,
-          setValue() {}
-        })
-      })).toBe(undefined);
+        input,
+        event: 'blur',
+        target: input
+      })).toBe(null);
     });
 
-    test('null is treated like 0', () => {
+    test('non-numbers are not validated', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => null,
+        setValue() {}
+      });
+
+      expect(validation.max(-3)({
+        input,
+        event: 'blur',
+        target: input
+      })).toBe(null);
+    });
+
+    test('default message is used', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 0,
+        setValue() {}
+      });
+
+      validation.max.message = ({value, maxValue}) =>
+        `Custom message: ${value} greater than ${maxValue}`;
+
+      expect(validation.max(-3)({
+        input,
+        event: 'blur',
+        target: input
+      })).toBe('Custom message: 0 greater than -3');
+
+      delete validation.max.message;
+    });
+
+    test('the default message receives the right arguments', () => {
+      expect.assertions(6);
+
+      const testInput = new Input({
+        getValue() {return 0;},
+        setValue() {}
+      });
+      const targetInput = new Input();
+
+      validation.max.message = ({maxValue, value, input, event, target}) => {
+        expect(maxValue).toBe(-3);
+        expect(value).toBe(0);
+        expect(input).toBe(testInput);
+        expect(target).toBe(targetInput);
+        expect(event).toBe('submit');
+
+        return 'Custom max message';
+      };
+
+      expect(validation.max(-3)({
+        event: 'submit',
+        input: testInput,
+        target: targetInput
+      })).toBe('Custom max message');
+
+      delete validation.max.message;
+    });
+
+    test('option message is used', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 0,
+        setValue() {}
+      });
+
+      expect(validation.max(-3, {
+        message: ({value, maxValue}) => `Option message: ${value} greater than ${maxValue}`
+      })({
+        input,
+        event: 'blur',
+        target: input
+      })).toBe('Option message: 0 greater than -3');
+    });
+
+    test('option message receieves the right arguments', () => {
+      expect.assertions(6);
+
+      const testInput = new Input({
+        getValue() {return 0;},
+        setValue() {}
+      });
+      const targetInput = new Input();
+
+      expect(validation.max(-3, {
+        message: ({maxValue, value, input, event, target}) => {
+          expect(maxValue).toBe(-3);
+          expect(value).toBe(0);
+          expect(input).toBe(testInput);
+          expect(target).toBe(targetInput);
+          expect(event).toBe('submit');
+
+          return 'Option max message';
+        }
+      })({
+        event: 'submit',
+        input: testInput,
+        target: targetInput
+      })).toBe('Option max message');
+    });
+
+    test('option message overwrites max.message', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 0,
+        setValue() {}
+      });
+
+      validation.max.message = () => 'Custom max message';
+
+      expect(validation.max(-3, {
+        message: ({value, maxValue}) =>
+          `Overwritting message: ${value} greater than ${maxValue}`
+      })({
+        input,
+        event: 'blur',
+        target: input
+      })).toBe('Overwritting message: 0 greater than -3');
+
+      delete validation.max.message;
+    });
+
+    test('invalid default submit', () => {
       expect.assertions(1);
       expect(validation.max(-3)({
+        event: 'submit',
         input: new Input({
-          getValue: () => null,
+          getValue: () => 0,
           setValue() {}
         })
       })).toBe('Maximum allowed is -3');
     });
 
-    test('undefined is not treated like 0', () => {
+    test('valid default submit', () => {
       expect.assertions(1);
       expect(validation.max(-3)({
+        event: 'submit',
         input: new Input({
-          getValue: () => undefined,
+          getValue: () => -4,
           setValue() {}
         })
+      })).toBe(null);
+    });
+
+    test('blur is default event with input as target', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 0,
+        setValue() {}
+      });
+
+      expect(validation.max(-3)({
+        event: 'blur',
+        input,
+        target: input
+      })).toBe('Maximum allowed is -3');
+    });
+
+    test('ignored error on unknown event', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 0,
+        setValue() {}
+      });
+
+      expect(validation.max(-3)({
+        event: 'custom',
+        input,
+        target: input
       })).toBe(undefined);
     });
 
-    test('messageFunc is used', () => {
+    test('custom event', () => {
       expect.assertions(1);
 
-      validation.max.messageFunc = ({value, maxValue}) =>
-        `Custom message: ${value} greater than ${maxValue}`;
+      const input = new Input({
+        getValue: () => 0,
+        setValue() {}
+      });
+
+      expect(validation.max(-3, {events: ['custom']})({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe('Maximum allowed is -3');
+    });
+
+    test('error on non-submit event is ignored if target is not input', () => {
+      expect.assertions(2);
+
+      const input = new Input({
+        getValue: () => 0,
+        setValue() {}
+      });
 
       expect(validation.max(-3)({
-        input: new Input({
-          getValue: () => 0,
-          setValue() {}
-        })
-      })).toBe('Custom message: 0 greater than -3');
-
-      delete validation.max.messageFunc;
+        event: 'blur',
+        input
+      })).toBe(undefined);
+      expect(validation.max(-3, {events: ['custom']})({
+        event: 'custom',
+        input
+      })).toBe(undefined);
     });
 
-    test('option messageFunc is used', () => {
-      expect.assertions(1);
-      expect(validation.max(-3, {
-        messageFunc: ({value, maxValue}) => `Option message: ${value} greater than ${maxValue}`
-      })({
-        input: new Input({
-          getValue: () => 0,
-          setValue() {}
-        })
-      })).toBe('Option message: 0 greater than -3');
+    test('if validation error changes it replaces the existing error', () => {
+      expect.assertions(6);
+
+      let inputValue = 0;
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+      let validationMessage = 'Invalid';
+      const validationFunc = validation.max(-3, {message: () => validationMessage});
+
+      expect(validationFunc({
+        event: 'submit',
+        input
+      })).toBe('Invalid');
+
+      validationMessage = 'Another validation message';
+
+      expect(validationFunc({
+        event: 'blur',
+        input
+      })).toBe('Another validation message');
+      expect(validationFunc({
+        event: 'custom',
+        input
+      })).toBe('Another validation message');
+
+      inputValue = -3;
+
+      expect(validationFunc({
+        event: 'submit',
+        input
+      })).toBe(null);
+      expect(validationFunc({
+        event: 'blur',
+        input
+      })).toBe(null);
+      expect(validationFunc({
+        event: 'custom',
+        input
+      })).toBe(null);
     });
 
-    test('option messageFunc overwrites max.messageFunc', () => {
+    test('non-submit event is not ignored even if target is not input if there\'s no error', () => {
+      expect.assertions(3);
+
+      let inputValue = 0;
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+      const validationFunc = validation.max(-3);
+
+      expect(validationFunc({
+        event: 'submit',
+        input
+      })).toBe('Maximum allowed is -3');
+
+      inputValue = -3;
+
+      expect(validationFunc({
+        event: 'blur',
+        input
+      })).toBe(null);
+      expect(validationFunc({
+        event: 'custom',
+        input
+      })).toBe(null);
+    });
+
+    test('error is reported with unrecognized event and with different target when ignoreEvent'
+      + ' is true', () => {
       expect.assertions(1);
-
-      validation.max.messageFunc = () => 'Custom max message';
-
-      expect(validation.max(-3, {
-        messageFunc: ({value, maxValue}) =>
-          `Overwritting message: ${value} greater than ${maxValue}`
-      })({
+      expect(validation.max(-3, {ignoreEvent: true})({
+        event: 'custom',
         input: new Input({
           getValue: () => 0,
           setValue() {}
         })
-      })).toBe('Overwritting message: 0 greater than -3');
+      })).toBe('Maximum allowed is -3');
+    });
 
-      delete validation.max.messageFunc;
+    test('default events can be changed', () => {
+      expect.assertions(3);
+
+      validation.max.events = ['custom'];
+
+      let inputValue = 0;
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+
+      expect(validation.max(-3)({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe('Maximum allowed is -3');
+
+      inputValue = -3;
+
+      expect(validation.max(-3)({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe(null);
+
+      delete validation.max.events;
+
+      inputValue = 0;
+
+      expect(validation.max(-3)({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe(undefined);
+    });
+
+    test('changed default events can be overwritten', () => {
+      expect.assertions(2);
+
+      validation.max.events = ['defaultCustom'];
+
+      let inputValue = 0;
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+
+      expect(validation.max(-3)({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe(undefined);
+
+      expect(validation.max(-3, {events: ['custom']})({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe('Maximum allowed is -3');
+
+      delete validation.max.events;
+    });
+
+    test('if events are not customized, the validate defaults are used', () => {
+      expect.assertions(2);
+
+      validation.validate.events = ['custom'];
+
+      let inputValue = 0;
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+
+      expect(validation.max(-3)({
+        input,
+        event: 'custom',
+        target: input
+      })).toBe('Maximum allowed is -3');
+
+      validation.max.events = ['blur'];
+
+      expect(validation.max(-3)({
+        input,
+        event: 'custom',
+        target: input
+      })).toBe(undefined);
+
+      delete validation.validate.events;
+      delete validation.max.events;
+    });
+
+    test('the events can be ignored and validation always performed', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 0,
+        setValue() {}
+      });
+
+      expect(validation.max(-3, {ignoreEvent: true})({
+        input,
+        event: 'custom',
+        target: input
+      })).toBe('Maximum allowed is -3');
+    });
+
+    test('submit event is still considered even if default events are overwritten', () => {
+      expect.assertions(1);
+
+      expect(
+        validation.max(-3, {events: ['custom']})({
+        event: 'submit',
+        input: new Input({
+          getValue: () => 0,
+          setValue() {}
+        }),
+      })).toBe('Maximum allowed is -3');
     });
   });
 
   describe('minLength', () => {
     test('less length is invalid', () => {
       expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => '',
+        setValue() {}
+      });
+
       expect(validation.minLength(3)({
-        input: new Input({
-          getValue: () => '',
-          setValue() {}
-        })
+        input,
+        event: 'blur',
+        target: input
       })).toBe('Minimum allowed length is 3');
     });
 
@@ -916,7 +1857,7 @@ describe('validation', () => {
           getValue: () => 0,
           setValue() {}
         })
-      })).toBe(undefined);
+      })).toBe(null);
     });
 
     test('equal length is valid', () => {
@@ -926,7 +1867,7 @@ describe('validation', () => {
           getValue: () => -3,
           setValue() {}
         })
-      })).toBe(undefined);
+      })).toBe(null);
     });
 
     test('non-strings are not validated', () => {
@@ -936,65 +1877,423 @@ describe('validation', () => {
           getValue: () => 1,
           setValue() {}
         })
-      })).toBe(undefined);
+      })).toBe(null);
     });
 
-    test('messageFunc is used', () => {
+    test('default message is used', () => {
       expect.assertions(1);
 
-      validation.minLength.messageFunc = ({value, minLength}) =>
+      const input = new Input({
+        getValue: () => '',
+        setValue() {}
+      });
+
+      validation.minLength.message = ({value, minLength}) =>
         `Custom message: ${value.length} less than ${minLength}`;
 
       expect(validation.minLength(3)({
-        input: new Input({
-          getValue: () => '',
-          setValue() {}
-        })
+        input,
+        event: 'blur',
+        target: input
       })).toBe('Custom message: 0 less than 3');
 
-      delete validation.minLength.messageFunc;
+      delete validation.minLength.message;
     });
 
-    test('option messageFunc is used', () => {
+    test('the default message receives the right arguments', () => {
+      expect.assertions(6);
+
+      const testInput = new Input({
+        getValue() {return '';},
+        setValue() {}
+      });
+      const targetInput = new Input();
+
+      validation.minLength.message = ({minLength, value, input, event, target}) => {
+        expect(minLength).toBe(3);
+        expect(value).toBe('');
+        expect(input).toBe(testInput);
+        expect(target).toBe(targetInput);
+        expect(event).toBe('submit');
+
+        return 'Custom minLength message';
+      };
+
+      expect(validation.minLength(3)({
+        event: 'submit',
+        input: testInput,
+        target: targetInput
+      })).toBe('Custom minLength message');
+
+      delete validation.minLength.message;
+    });
+
+    test('option message is used', () => {
       expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => '',
+        setValue() {}
+      });
+
       expect(validation.minLength(3, {
-        messageFunc: ({value, minLength}) =>
+        message: ({value, minLength}) =>
           `Option message: ${value.length} less than ${minLength}`
       })({
-        input: new Input({
-          getValue: () => '',
-          setValue() {}
-        })
+        input,
+        event: 'blur',
+        target: input
       })).toBe('Option message: 0 less than 3');
     });
 
-    test('option messageFunc overwrites minLength.messageFunc', () => {
-      expect.assertions(1);
+    test('option message receieves the right arguments', () => {
+      expect.assertions(6);
 
-      validation.minLength.messageFunc = () => 'Custom min length message';
+      const testInput = new Input({
+        getValue() {return '';},
+        setValue() {}
+      });
+      const targetInput = new Input();
 
       expect(validation.minLength(3, {
-        messageFunc: ({value, minLength}) =>
+        message: ({minLength, value, input, event, target}) => {
+          expect(minLength).toBe(3);
+          expect(value).toBe('');
+          expect(input).toBe(testInput);
+          expect(target).toBe(targetInput);
+          expect(event).toBe('submit');
+
+          return 'Option minLength message';
+        }
+      })({
+        event: 'submit',
+        input: testInput,
+        target: targetInput
+      })).toBe('Option minLength message');
+    });
+
+    test('option message overwrites minLength.message', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => '',
+        setValue() {}
+      });
+
+      validation.minLength.message = () => 'Custom min length message';
+
+      expect(validation.minLength(3, {
+        message: ({value, minLength}) =>
           `Overwritting message: ${value.length} less than ${minLength}`
       })({
+        input,
+        event: 'blur',
+        target: input
+      })).toBe('Overwritting message: 0 less than 3');
+
+      delete validation.minLength.message;
+    });
+
+    test('invalid default submit', () => {
+      expect.assertions(1);
+      expect(validation.minLength(3)({
+        event: 'submit',
         input: new Input({
           getValue: () => '',
           setValue() {}
         })
-      })).toBe('Overwritting message: 0 less than 3');
+      })).toBe('Minimum allowed length is 3');
+    });
 
-      delete validation.minLength.messageFunc;
+    test('valid default submit', () => {
+      expect.assertions(1);
+      expect(validation.minLength(3)({
+        event: 'submit',
+        input: new Input({
+          getValue: () => 'abcd',
+          setValue() {}
+        })
+      })).toBe(null);
+    });
+
+    test('blur is default event with input as target', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => '',
+        setValue() {}
+      });
+
+      expect(validation.minLength(3)({
+        event: 'blur',
+        input,
+        target: input
+      })).toBe('Minimum allowed length is 3');
+    });
+
+    test('ignored error on unknown event', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => '',
+        setValue() {}
+      });
+
+      expect(validation.minLength(3)({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe(undefined);
+    });
+
+    test('custom event', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => '',
+        setValue() {}
+      });
+
+      expect(validation.minLength(3, {events: ['custom']})({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe('Minimum allowed length is 3');
+    });
+
+    test('error on non-submit event is ignored if target is not input', () => {
+      expect.assertions(2);
+
+      const input = new Input({
+        getValue: () => '',
+        setValue() {}
+      });
+
+      expect(validation.minLength(3)({
+        event: 'blur',
+        input
+      })).toBe(undefined);
+      expect(validation.minLength(3, {events: ['custom']})({
+        event: 'custom',
+        input
+      })).toBe(undefined);
+    });
+
+    test('if validation error changes it replaces the existing error', () => {
+      expect.assertions(6);
+
+      let inputValue = '';
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+      let validationMessage = 'Invalid';
+      const validationFunc = validation.minLength(3, {message: () => validationMessage});
+
+      expect(validationFunc({
+        event: 'submit',
+        input
+      })).toBe('Invalid');
+
+      validationMessage = 'Another validation message';
+
+      expect(validationFunc({
+        event: 'blur',
+        input
+      })).toBe('Another validation message');
+      expect(validationFunc({
+        event: 'custom',
+        input
+      })).toBe('Another validation message');
+
+      inputValue = 'abcd';
+
+      expect(validationFunc({
+        event: 'submit',
+        input
+      })).toBe(null);
+      expect(validationFunc({
+        event: 'blur',
+        input
+      })).toBe(null);
+      expect(validationFunc({
+        event: 'custom',
+        input
+      })).toBe(null);
+    });
+
+    test('non-submit event is not ignored even if target is not input if there\'s no error', () => {
+      expect.assertions(3);
+
+      let inputValue = '';
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+      const validationFunc = validation.minLength(3);
+
+      expect(validationFunc({
+        event: 'submit',
+        input
+      })).toBe('Minimum allowed length is 3');
+
+      inputValue = 'abcd';
+
+      expect(validationFunc({
+        event: 'blur',
+        input
+      })).toBe(null);
+      expect(validationFunc({
+        event: 'custom',
+        input
+      })).toBe(null);
+    });
+
+    test('error is reported with unrecognized event and with different target when ignoreEvent'
+      + ' is true', () => {
+      expect.assertions(1);
+      expect(validation.minLength(3, {ignoreEvent: true})({
+        event: 'custom',
+        input: new Input({
+          getValue: () => '',
+          setValue() {}
+        })
+      })).toBe('Minimum allowed length is 3');
+    });
+
+    test('default events can be changed', () => {
+      expect.assertions(3);
+
+      validation.minLength.events = ['custom'];
+
+      let inputValue = '';
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+
+      expect(validation.minLength(3)({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe('Minimum allowed length is 3');
+
+      inputValue = 'abcd';
+
+      expect(validation.minLength(3)({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe(null);
+
+      delete validation.minLength.events;
+
+      inputValue = '';
+
+      expect(validation.minLength(3)({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe(undefined);
+    });
+
+    test('changed default events can be overwritten', () => {
+      expect.assertions(2);
+
+      validation.minLength.events = ['defaultCustom'];
+
+      let inputValue = '';
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+
+      expect(validation.minLength(3)({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe(undefined);
+
+      expect(validation.minLength(3, {events: ['custom']})({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe('Minimum allowed length is 3');
+
+      delete validation.minLength.events;
+    });
+
+    test('if events are not customized, the validate defaults are used', () => {
+      expect.assertions(2);
+
+      validation.validate.events = ['custom'];
+
+      let inputValue = '';
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+
+      expect(validation.minLength(3)({
+        input,
+        event: 'custom',
+        target: input
+      })).toBe('Minimum allowed length is 3');
+
+      validation.minLength.events = ['blur'];
+
+      expect(validation.minLength(3)({
+        input,
+        event: 'custom',
+        target: input
+      })).toBe(undefined);
+
+      delete validation.validate.events;
+      delete validation.minLength.events;
+    });
+
+    test('the events can be ignored and validation always performed', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => '',
+        setValue() {}
+      });
+
+      expect(validation.minLength(3, {ignoreEvent: true})({
+        input,
+        event: 'custom',
+        target: input
+      })).toBe('Minimum allowed length is 3');
+    });
+
+    test('submit event is still considered even if default events are overwritten', () => {
+      expect.assertions(1);
+
+      expect(
+        validation.minLength(3, {events: ['custom']})({
+        event: 'submit',
+        input: new Input({
+          getValue: () => '',
+          setValue() {}
+        }),
+      })).toBe('Minimum allowed length is 3');
     });
   });
 
   describe('maxLength', () => {
     test('greater length is invalid', () => {
       expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 'abcd',
+        setValue() {}
+      });
+
       expect(validation.maxLength(3)({
-        input: new Input({
-          getValue: () => 'abcd',
-          setValue() {}
-        })
+        input,
+        event: 'blur',
+        target: input
       })).toBe('Maximum allowed length is 3');
     });
 
@@ -1005,7 +2304,7 @@ describe('validation', () => {
           getValue: () => 'ab',
           setValue() {}
         })
-      })).toBe(undefined);
+      })).toBe(null);
     });
 
     test('equal length is valid', () => {
@@ -1015,7 +2314,7 @@ describe('validation', () => {
           getValue: () => 'abc',
           setValue() {}
         })
-      })).toBe(undefined);
+      })).toBe(null);
     });
 
     test('non-strings are not validated', () => {
@@ -1025,54 +2324,407 @@ describe('validation', () => {
           getValue: () => 1234,
           setValue() {}
         })
-      })).toBe(undefined);
+      })).toBe(null);
     });
 
-    test('messageFunc is used', () => {
+    test('default message is used', () => {
       expect.assertions(1);
 
-      validation.maxLength.messageFunc = ({value, maxLength}) =>
+      const input = new Input({
+        getValue: () => 'abcd',
+        setValue() {}
+      });
+
+      validation.maxLength.message = ({value, maxLength}) =>
         `Custom message: ${value.length} greater than ${maxLength}`;
 
       expect(validation.maxLength(3)({
-        input: new Input({
-          getValue: () => 'abcd',
-          setValue() {}
-        })
+        input,
+        event: 'blur',
+        target: input
       })).toBe('Custom message: 4 greater than 3');
 
-      delete validation.maxLength.messageFunc;
+      delete validation.maxLength.message;
     });
 
-    test('option messageFunc is used', () => {
+    test('the default message receives the right arguments', () => {
+      expect.assertions(6);
+
+      const testInput = new Input({
+        getValue() {return 'abcd';},
+        setValue() {}
+      });
+      const targetInput = new Input();
+
+      validation.maxLength.message = ({maxLength, value, input, event, target}) => {
+        expect(maxLength).toBe(3);
+        expect(value).toBe('abcd');
+        expect(input).toBe(testInput);
+        expect(target).toBe(targetInput);
+        expect(event).toBe('submit');
+
+        return 'Custom maxLength message';
+      };
+
+      expect(validation.maxLength(3)({
+        event: 'submit',
+        input: testInput,
+        target: targetInput
+      })).toBe('Custom maxLength message');
+
+      delete validation.maxLength.message;
+    });
+
+    test('option message is used', () => {
       expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 'abcd',
+        setValue() {}
+      });
+
       expect(validation.maxLength(3, {
-        messageFunc: ({value, maxLength}) =>
+        message: ({value, maxLength}) =>
           `Option message: ${value.length} greater than ${maxLength}`
       })({
-        input: new Input({
-          getValue: () => 'abcd',
-          setValue() {}
-        })
+        input,
+        event: 'blur',
+        target: input
       })).toBe('Option message: 4 greater than 3');
     });
 
-    test('option messageFunc overwrites maxLength.messageFunc', () => {
-      expect.assertions(1);
+    test('option message receieves the right arguments', () => {
+      expect.assertions(6);
 
-      validation.maxLength.messageFunc = () => 'Custom max length message';
+      const testInput = new Input({
+        getValue() {return 'abcd';},
+        setValue() {}
+      });
+      const targetInput = new Input();
 
       expect(validation.maxLength(3, {
-        messageFunc: ({value, maxLength}) =>
+        message: ({maxLength, value, input, event, target}) => {
+          expect(maxLength).toBe(3);
+          expect(value).toBe('abcd');
+          expect(input).toBe(testInput);
+          expect(target).toBe(targetInput);
+          expect(event).toBe('submit');
+
+          return 'Option maxLength message';
+        }
+      })({
+        event: 'submit',
+        input: testInput,
+        target: targetInput
+      })).toBe('Option maxLength message');
+    });
+
+    test('option message overwrites maxLength.message', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 'abcd',
+        setValue() {}
+      });
+
+      validation.maxLength.message = () => 'Custom max length message';
+
+      expect(validation.maxLength(3, {
+        message: ({value, maxLength}) =>
           `Overwritting message: ${value.length} greater than ${maxLength}`
       })({
-        input: new Input({
-          getValue: () => 'abcd',
-          setValue() {}
-        })
+        input,
+        event: 'blur',
+        target: input
       })).toBe('Overwritting message: 4 greater than 3');
 
-      delete validation.maxLength.messageFunc;
+      delete validation.maxLength.message;
+    });
+
+    test('invalid default submit', () => {
+      expect.assertions(1);
+      expect(validation.maxLength(3)({
+        event: 'submit',
+        input: new Input({
+          getValue: () => 'abcde',
+          setValue() {}
+        })
+      })).toBe('Maximum allowed length is 3');
+    });
+
+    test('valid default submit', () => {
+      expect.assertions(1);
+      expect(validation.maxLength(3)({
+        event: 'submit',
+        input: new Input({
+          getValue: () => 'ab',
+          setValue() {}
+        })
+      })).toBe(null);
+    });
+
+    test('blur is default event with input as target', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 'abcde',
+        setValue() {}
+      });
+
+      expect(validation.maxLength(3)({
+        event: 'blur',
+        input,
+        target: input
+      })).toBe('Maximum allowed length is 3');
+    });
+
+    test('ignored error on unknown event', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 'abcde',
+        setValue() {}
+      });
+
+      expect(validation.maxLength(3)({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe(undefined);
+    });
+
+    test('custom event', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 'abcde',
+        setValue() {}
+      });
+
+      expect(validation.maxLength(3, {events: ['custom']})({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe('Maximum allowed length is 3');
+    });
+
+    test('error on non-submit event is ignored if target is not input', () => {
+      expect.assertions(2);
+
+      const input = new Input({
+        getValue: () => 'abcde',
+        setValue() {}
+      });
+
+      expect(validation.maxLength(3)({
+        event: 'blur',
+        input
+      })).toBe(undefined);
+      expect(validation.maxLength(3, {events: ['custom']})({
+        event: 'custom',
+        input
+      })).toBe(undefined);
+    });
+
+    test('if validation error changes it replaces the existing error', () => {
+      expect.assertions(6);
+
+      let inputValue = 'abcde';
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+      let validationMessage = 'Invalid';
+      const validationFunc = validation.maxLength(3, {message: () => validationMessage});
+
+      expect(validationFunc({
+        event: 'submit',
+        input
+      })).toBe('Invalid');
+
+      validationMessage = 'Another validation message';
+
+      expect(validationFunc({
+        event: 'blur',
+        input
+      })).toBe('Another validation message');
+      expect(validationFunc({
+        event: 'custom',
+        input
+      })).toBe('Another validation message');
+
+      inputValue = 'ab';
+
+      expect(validationFunc({
+        event: 'submit',
+        input
+      })).toBe(null);
+      expect(validationFunc({
+        event: 'blur',
+        input
+      })).toBe(null);
+      expect(validationFunc({
+        event: 'custom',
+        input
+      })).toBe(null);
+    });
+
+    test('non-submit event is not ignored even if target is not input if there\'s no error', () => {
+      expect.assertions(3);
+
+      let inputValue = 'abcde';
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+      const validationFunc = validation.maxLength(3);
+
+      expect(validationFunc({
+        event: 'submit',
+        input
+      })).toBe('Maximum allowed length is 3');
+
+      inputValue = 'ab';
+
+      expect(validationFunc({
+        event: 'blur',
+        input
+      })).toBe(null);
+      expect(validationFunc({
+        event: 'custom',
+        input
+      })).toBe(null);
+    });
+
+    test('error is reported with unrecognized event and with different target when ignoreEvent'
+      + ' is true', () => {
+      expect.assertions(1);
+      expect(validation.maxLength(3, {ignoreEvent: true})({
+        event: 'custom',
+        input: new Input({
+          getValue: () => 'abcde',
+          setValue() {}
+        })
+      })).toBe('Maximum allowed length is 3');
+    });
+
+    test('default events can be changed', () => {
+      expect.assertions(3);
+
+      validation.maxLength.events = ['custom'];
+
+      let inputValue = 'abcde';
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+
+      expect(validation.maxLength(3)({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe('Maximum allowed length is 3');
+
+      inputValue = 'ab';
+
+      expect(validation.maxLength(3)({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe(null);
+
+      delete validation.maxLength.events;
+
+      inputValue = 'abcde';
+
+      expect(validation.maxLength(3)({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe(undefined);
+    });
+
+    test('changed default events can be overwritten', () => {
+      expect.assertions(2);
+
+      validation.maxLength.events = ['defaultCustom'];
+
+      let inputValue = 'abcde';
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+
+      expect(validation.maxLength(3)({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe(undefined);
+
+      expect(validation.maxLength(3, {events: ['custom']})({
+        event: 'custom',
+        input,
+        target: input
+      })).toBe('Maximum allowed length is 3');
+
+      delete validation.maxLength.events;
+    });
+
+    test('if events are not customized, the validate defaults are used', () => {
+      expect.assertions(2);
+
+      validation.validate.events = ['custom'];
+
+      let inputValue = 'abcd';
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+
+      expect(validation.maxLength(2)({
+        input,
+        event: 'custom',
+        target: input
+      })).toBe('Maximum allowed length is 2');
+
+      validation.maxLength.events = ['blur'];
+
+      expect(validation.maxLength(2)({
+        input,
+        event: 'custom',
+        target: input
+      })).toBe(undefined);
+
+      delete validation.validate.events;
+      delete validation.maxLength.events;
+    });
+
+    test('the events can be ignored and validation always performed', () => {
+      expect.assertions(1);
+
+      const input = new Input({
+        getValue: () => 'abcd',
+        setValue() {}
+      });
+
+      expect(validation.maxLength(2, {ignoreEvent: true})({
+        input,
+        event: 'custom',
+        target: input
+      })).toBe('Maximum allowed length is 2');
+    });
+
+    test('submit event is still considered even if default events are overwritten', () => {
+      expect.assertions(1);
+
+      expect(
+        validation.maxLength(3, {events: ['custom']})({
+        event: 'submit',
+        input: new Input({
+          getValue: () => 'abcde',
+          setValue() {}
+        }),
+      })).toBe('Maximum allowed length is 3');
     });
   });
 
@@ -1160,6 +2812,50 @@ describe('validation', () => {
         event: 'custom'
       }).then((err) => {
         expect(err).toBe('error');
+      });
+    });
+
+    test('the default events can be changed', () => {
+      expect.assertions(1);
+
+      validation.async.events = ['custom'];
+
+      const input = new Input({
+        getValue: () => 2,
+        setValue() {}
+      });
+
+      return validation.async((value) => Promise.resolve(value === 3 ? null : 'error'))({
+        input,
+        target: input,
+        event: 'custom'
+      }).then((err) => {
+        expect(err).toBe('error');
+
+        delete validation.async.events;
+      });
+    });
+
+    test('the default events can be overwritten', () => {
+      expect.assertions(1);
+
+      validation.async.events = ['customDefault'];
+
+      const input = new Input({
+        getValue: () => 2,
+        setValue() {}
+      });
+
+      return validation.async(
+        (value) => Promise.resolve(value === 3 ? null : 'error'),
+        {events: ['custom']})({
+        input,
+        target: input,
+        event: 'custom'
+      }).then((err) => {
+        expect(err).toBe('error');
+
+        delete validation.async.events;
       });
     });
 
@@ -1666,6 +3362,164 @@ describe('validation', () => {
       });
 
       inputValue = 5;
+
+      return promise;
+    });
+
+    test('if the validation function returns a falsy value and the input value is different'
+      + ' from the old value, the error is cleared', async () => {
+      expect.assertions(2);
+
+      let inputValue = 4;
+      let skipAsyncValidation = false;
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+
+      const asyncValiationFunc = validation.async(
+        (value) => skipAsyncValidation ? null : Promise.resolve(value === 3 ? null : 'error'),
+        {events: ['blur']});
+
+      await asyncValiationFunc({
+        input,
+        target: input,
+        event: 'blur'
+      }).then((err) => {
+        expect(err).toBe('error');
+      });
+
+      skipAsyncValidation = true;
+      inputValue = 5;
+
+      expect(asyncValiationFunc({
+        input,
+        target: input,
+        event: 'blur'
+      })).toBe(null);
+    });
+
+    test('if the validation function returns a falsy value and the input value didn\'t change'
+      + ' the error is preserved', async () => {
+      expect.assertions(2);
+
+      let inputValue = 4;
+      let skipAsyncValidation = false;
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+
+      const asyncValiationFunc = validation.async(
+        (value) => skipAsyncValidation ? null : Promise.resolve(value === 3 ? null : 'error'),
+        {events: ['blur']});
+
+      await asyncValiationFunc({
+        input,
+        target: input,
+        event: 'blur'
+      }).then((err) => {
+        expect(err).toBe('error');
+      });
+
+      skipAsyncValidation = true;
+
+      expect(asyncValiationFunc({
+        input,
+        target: input,
+        event: 'blur'
+      })).toBe('error');
+    });
+
+    test('if the validation function returns a falsy value and the input value is different'
+      + ' from the old value, the pending validation is cancelled', async () => {
+      expect.assertions(3);
+
+      let inputValue = 4;
+      let skipAsyncValidation = false;
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+
+      const asyncValiationFunc = validation.async(
+        (value) => skipAsyncValidation ? null : Promise.resolve(value === 3 ? null : 'error'),
+        {events: ['blur']});
+
+      await asyncValiationFunc({
+        input,
+        target: input,
+        event: 'blur'
+      }).then((err) => {
+        expect(err).toBe('error');
+      });
+
+      const promise = asyncValiationFunc({
+        input,
+        target: input,
+        event: 'blur'
+      }).then((err) => {
+        expect(err).toBe(null);
+      });
+
+      skipAsyncValidation = true;
+      inputValue = 5;
+
+      expect(asyncValiationFunc({
+        input,
+        target: input,
+        event: 'blur'
+      })).toBe(null);
+
+      return promise;
+    });
+
+    test('if the validation function returns a falsy value and the input value didn\'t change'
+      + ' the pending validation is not cancelled', async () => {
+      expect.assertions(3);
+
+      let inputValue = 4;
+      let skipAsyncValidation = false;
+      let validationWithErrorsCount = 0;
+      const input = new Input({
+        getValue: () => inputValue,
+        setValue() {}
+      });
+
+      const asyncValiationFunc = validation.async(
+        (value) => skipAsyncValidation
+          ? null :
+          Promise.resolve(value === 3
+            ? null
+            : ++validationWithErrorsCount === 1
+              ? 'error'
+              : 'error2'),
+        {events: ['blur']});
+
+      await asyncValiationFunc({
+        input,
+        target: input,
+        event: 'blur'
+      }).then((err) => {
+        expect(err).toBe('error');
+      });
+
+      const promise = asyncValiationFunc({
+        input,
+        target: input,
+        event: 'blur'
+      }).then((err) => {
+        expect(err).toBe('error2');
+      });
+
+      skipAsyncValidation = true;
+
+      // the second async validation sets the error to null
+      expect(asyncValiationFunc({
+        input,
+        target: input,
+        event: 'blur'
+      })).toBe(null);
 
       return promise;
     });
