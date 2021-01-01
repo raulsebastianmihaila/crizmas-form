@@ -7,7 +7,7 @@
 - messageFunc was renamed for all the validation functions that accepted it to 'message'.
 - The default event for validate is now 'blur' instead the list made of 'change' and 'blur'.
 - validate now calls the validation function with an object containing the input, event as target instead of the value.
-- min, max, minLength and maxLength now are based on validate as required is so their defalut event will now be 'blur'.
+- min, max, minLength and maxLength now are based on validate as required is so their default event will now be 'blur'.
 - min and max now also check that the type of the value is 'number' before doing further validation.
 - The validation function passed to async can now return a falsy value in which case async behaves as if the validation was skipped (for instance if the event didn't match).
 
@@ -16,7 +16,7 @@
 - Updated jest and crizmas-mvc dev dependencies.
 - The message function will receive as an argument an object containing the input, event and target.
 - validate, required, min, max, minLength and maxLength can pass an ignoreEvent option which causes the error to be reported even if the event doesn't match the list of expected events or if the target doesn't match.
-- validate accepts a target function option which receives an object containing the input, event and target and if it is passed validate will check the target agains the result of calling this function instead of checking it against the input.
+- validate accepts a target function option which receives an object containing the input, event and target and if it is passed validate will check the target against the result of calling this function instead of checking it against the input.
 - The default events for validate, required, min, max, minLength, maxLength and async can now be changed using validate.events, required.events, min.events, max.events, minLength.events, maxLength.events and async.events. These can be overwritten by passing an events option.
 
 <a name="1.1.1"></a>
