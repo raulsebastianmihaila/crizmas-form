@@ -1,3 +1,10 @@
+<a name="2.0.1"></a>
+# [2.0.1](https://github.com/raulsebastianmihaila/crizmas-form/compare/v2.0.0...v2.0.1) (2021-08-22)
+
+### Updates
+- Updated crizmas-mvc peer and dev dependency.
+- Updated jest, react and react-dom dev dependencies.
+
 <a name="2.0.0"></a>
 # [2.0.0](https://github.com/raulsebastianmihaila/crizmas-form/compare/v1.1.1...v2.0.0) (2021-01-01)
 

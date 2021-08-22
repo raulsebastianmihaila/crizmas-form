@@ -10,7 +10,7 @@
   },
   "type": "module",
   "peerDependencies": {
-    "crizmas-mvc": "^2.0.0"
+    "crizmas-mvc": "^2.0.3"
   },
   "homepage": "https://raulsebastianmihaila.github.io/crizmas-mvc-docs",
   "repository": {
@@ -34,10 +34,10 @@
     "test-coverage": "NODE_OPTIONS=--experimental-vm-modules npx jest --coverage"
   },
   "devDependencies": {
-    "crizmas-mvc": "^2.0.0",
-    "jest": "^26.6.3",
+    "crizmas-mvc": "^2.0.3",
+    "jest": "^27.0.6",
     "prop-types": "^15.7.2",
-    "react": "^17.0.1",
-    "react-dom": "^17.0.1"
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
   }
 }
