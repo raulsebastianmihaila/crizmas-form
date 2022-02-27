@@ -1,3 +1,11 @@
+<a name="2.0.2"></a>
+# [2.0.2](https://github.com/raulsebastianmihaila/crizmas-form/compare/v2.0.1...v2.0.2) (2022-02-27)
+
+### Updates
+- Configure npm to use legacy peer dependency behavior.
+- Update crizmas-mvc peer dependency.
+- Update crizmas-mvc, prop-types and jest dev dependencies.
+
 <a name="2.0.1"></a>
 # [2.0.1](https://github.com/raulsebastianmihaila/crizmas-form/compare/v2.0.0...v2.0.1) (2021-08-22)
 
